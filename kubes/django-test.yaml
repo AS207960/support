@@ -101,6 +101,9 @@ spec:
             - secretRef:
                 name: support-test-celery
               prefix: "CELERY_"
+            - secretRef:
+                name: support-recaptcha
+              prefix: "RECAPTCHA_"
       containers:
         - name: gunicorn
           image: as207960/support-django:(version)
@@ -130,6 +133,9 @@ spec:
             - secretRef:
                 name: support-test-celery
               prefix: "CELERY_"
+            - secretRef:
+                name: support-recaptcha
+              prefix: "RECAPTCHA_"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -186,6 +192,9 @@ spec:
             - secretRef:
                 name: support-test-celery
               prefix: "CELERY_"
+            - secretRef:
+                name: support-recaptcha
+              prefix: "RECAPTCHA_"
 ---
 apiVersion: v1
 kind: Service

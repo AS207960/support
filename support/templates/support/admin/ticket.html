@@ -1,0 +1,146 @@
+{% extends 'support/base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+    <section class="stripe">
+        <div class="container my-5">
+            <div class="jumbotron">
+                <h1 class="display-4">Ticket #{{ ticket.ref }}</h1>
+                <h2>{{ ticket.subject }}</h2>
+                {% if perms.support.change_ticket %}
+                    <div class="btn-group">
+                        {% if ticket.assigned_to != user %}
+                            <a href="{% url 'agent-claim-ticket' ticket.id %}" class="btn btn-success">Claim</a>
+                        {% endif %}
+                        <a href="{% url 'agent-edit-ticket' ticket.id %}" class="btn btn-primary">Edit</a>
+                        {% if ticket.state == "O" %}
+                            <a href="{% url 'agent-close-ticket' ticket.id %}" class="btn btn-danger">Close</a>
+                        {% elif ticket.state == "C" %}
+                            <a href="{% url 'agent-reopen-ticket' ticket.id %}" class="btn btn-info">Reopen</a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                <div class="row mt-2">
+                    <div class="col">
+                        <b>Status:</b>
+                        {% if ticket.state == "O" %}
+                            <span class="badge badge-pill badge-success">Open</span>
+                        {% elif ticket.state == "C" %}
+                            <span class="badge badge-pill badge-danger">Closed</span>
+                        {% else %}
+                            {{ ticket.get_state_display }}
+                        {% endif %}
+                        <br>
+                        <b>Priority:</b>
+                        {% if ticket.priority == ticket.PRIORITY_LOW %}
+                            <span class="badge badge-pill badge-secondary">Low</span>
+                        {% elif ticket.priority == ticket.PRIORITY_NORMAL %}
+                            <span class="badge badge-pill badge-primary">Normal</span>
+                        {% elif ticket.priority == ticket.PRIORITY_HIGH %}
+                            <span class="badge badge-pill badge-warning">High</span>
+                        {% elif ticket.priority == ticket.PRIORITY_EMERGENCY %}
+                            <span class="badge badge-pill badge-danger">Emergency</span>
+                        {% else %}
+                            {{ ticket.get_priority_display }}
+                        {% endif %}
+                        <br>
+                        <b>Source:</b> {{ ticket.get_source_display }}
+                        <br>
+                        <b>Assigned to:</b>
+                        {% if ticket.assigned_to %}
+                            {{ ticket.assigned_to.first_name }} {{ ticket.assigned_to.last_name }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                        <br>
+                        <b>Due date:</b>
+                        {% if ticket.due_date %}
+                            {{ ticket.due_date }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                    <div class="col">
+                        <b>Name: </b> {{ ticket.customer.full_name }}
+                        {% if ticket.customer_verified %}
+                            <span class="badge badge-success">Verified</span>
+                        {% else %}
+                            <span class="badge badge-danger">Unverified</span>
+                        {% endif %}
+                        <br>
+                        <b>Email:</b> {{ ticket.customer.email }}
+                        <br>
+                        <b>Phone:</b>
+                        {% if ticket.customer.phone %}
+                            {{ ticket.customer.phone.as_e164 }}
+                            {% if ticket.customer.phone_ext %}ext. {{ ticket.customer.phone_ext }}{% endif %}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                        <br>
+                        <b>User ID: </b>
+                        {% if ticket.customer.user %}{{ ticket.customer.user.username }}{% else %}N/A{% endif %}
+                        <br>
+                        <b>Last message: </b>
+                        {% if ticket.last_message %}{{ ticket.last_message.date }}{% else %}N/A{% endif %}
+                        <br>
+                        <b>Last response: </b>
+                        {% if ticket.last_response %}{{ ticket.last_response.date }}{% else %}N/A{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <div class="container mt-5">
+        <h3>Ticket thread</h3>
+        {% for message in ticket.messages.all %}
+            <div class="card my-3{% if message.type == "C" %} border-primary{% elif message.type == "R" %} border-success{% elif message.type == "N" %} border-secondary{% elif message.type == "S" %} border-warning{% endif %}">
+                <div class="card-header">
+                    {{ message.date }}
+                    - <b>
+                        {% if message.type == "C" %}
+                            Customer message
+                        {% elif message.type == "R" %}
+                            Response
+                        {% elif message.type == "N" %}
+                            Internal note
+                        {% elif message.type == "S" %}
+                            System note
+                        {% else %}
+                            {{ message.get_type_display }}
+                        {% endif %}
+                    </b>
+                </div>
+                <div class="card-body">
+                    {{ message.message_safe|safe }}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <div class="container my-3">
+        <div class="jumbotron">
+            <ul class="nav nav-pills" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="reply-tab" data-toggle="tab" href="#reply" role="tab"
+                       aria-controls="reply" aria-selected="true">Post reply</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="note-tab" data-toggle="tab" href="#note" role="tab"
+                       aria-controls="note" aria-selected="false">Post note</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="assign-tab" data-toggle="tab" href="#assign" role="tab"
+                       aria-controls="assign" aria-selected="false">Assign</a>
+                </li>
+            </ul>
+            <div class="tab-content mt-3">
+                <div class="tab-pane fade show active" id="reply" role="tabpanel" aria-labelledby="reply-tab">
+                    {% crispy ticket_reply_form ticket_reply_form.helper %}
+                </div>
+                <div class="tab-pane fade" id="note" role="tabpanel" aria-labelledby="note-tab">
+                    {% crispy ticket_note_form ticket_note_form.helper %}
+                </div>
+                <div class="tab-pane fade" id="assign" role="tabpanel" aria-labelledby="assign-tab">...</div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

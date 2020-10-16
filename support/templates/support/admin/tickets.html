@@ -1,0 +1,73 @@
+{% extends 'support/base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+    <section class="stripe">
+        <div class="container my-5">
+            <div class="jumbotron">
+                <h1 class="display-4">Tickets</h1>
+                <ul class="nav nav-pills">
+                    <li class="nav-item">
+                        <a class="nav-link{% if tickets_type == "open" %} active{% endif %}" href="{% url 'agent-open-tickets' %}">Open</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link{% if tickets_type == "answered" %} active{% endif %}" href="{% url 'agent-answered-tickets' %}">Answered</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link{% if tickets_type == "own" %} active{% endif %}" href="{% url 'agent-own-tickets' %}">My tickets</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link{% if tickets_type == "closed" %} active{% endif %}" href="{% url 'agent-closed-tickets' %}">Closed tickets</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </section>
+    <div class="container">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="thead-dark">
+                <tr>
+                    <th>Ref</th>
+                    <th>Subject</th>
+                    <th>From</th>
+                    <th>Priority</th>
+                    <th>Assigned to</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% if tickets %}
+                    {% for ticket in tickets %}
+                        <tr>
+                            <td>{{ ticket.ref }}</td>
+                            <td><a href="{% url 'agent-view-ticket' ticket.id %}">{{ ticket.subject }}</a></td>
+                            <td>{{ ticket.customer.full_name }}</td>
+                            <td>
+                                {% if ticket.priority == ticket.PRIORITY_LOW %}
+                                    <span class="badge badge-pill badge-secondary">Low</span>
+                                {% elif ticket.priority == ticket.PRIORITY_NORMAL %}
+                                    <span class="badge badge-pill badge-primary">Normal</span>
+                                {% elif ticket.priority == ticket.PRIORITY_HIGH %}
+                                    <span class="badge badge-pill badge-warning">High</span>
+                                {% elif ticket.priority == ticket.PRIORITY_EMERGENCY %}
+                                    <span class="badge badge-pill badge-danger">Emergency</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ticket.assigned_to %}
+                                    {{ ticket.assigned_to.first_name }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5">No tickets</td>
+                    </tr>
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

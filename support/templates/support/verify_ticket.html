@@ -1,0 +1,26 @@
+{% extends 'support/base.html' %}
+{% block content %}
+    <section class="stripe">
+        <div class="container my-5">
+            <div class="jumbotron">
+                <h1 class="display-4">Verify ticket #{{ ticket.ref }}</h1>
+                <h2>{{ ticket.subject }}</h2>
+                <hr>
+                <p>
+                    Are you sure you want to verify this ticket as authentically from you?
+                </p>
+                <form action="" method="post">
+                    {% csrf_token %}
+                    <div class="btn-group">
+                        <a href="{% url 'view-ticket' ticket.id %}" class="btn btn-danger">
+                            Cancel
+                        </a>
+                        <button class="btn btn-primary" type="submit" name="verify" value="true">
+                            Verify
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+{% endblock %}

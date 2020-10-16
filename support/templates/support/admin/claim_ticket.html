@@ -1,0 +1,20 @@
+{% extends 'support/base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+    <section class="stripe">
+        <div class="container my-5">
+            <div class="jumbotron">
+                <h1 class="display-4">Claim ticket #{{ ticket.ref }}</h1>
+                <h2>{{ ticket.subject }}</h2>
+                <hr>
+                <form action="" method="post">
+                    {% csrf_token %}
+                    <div class="btn-group">
+                        <a href="{% url 'agent-view-ticket' ticket.id %}" class="btn btn-danger">Cancel</a>
+                        <button type="submit" name="claim" value="true" class="btn btn-success">Claim</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+{% endblock %}

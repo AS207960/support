@@ -1,0 +1,7 @@
+{% extends "support_email/email_base.txt" %}
+{% block content %}
+Your ticket under #{{ ticket_ref }} has been closed.
+We hope we were able to complete your request to your satisfaction.
+
+Please do not reply to this email to send additional comments, open a new ticket instead.
+{% endblock content %}

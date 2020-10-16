@@ -1,0 +1,35 @@
+{% extends 'support/base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+    <section class="stripe">
+        <div class="container my-5">
+            <div class="jumbotron">
+                <h1 class="display-4">Support</h1>
+                <p>
+                    Have you tried searching <a href="https://docs.glauca.digital/">our docs</a> first?
+                </p>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6 my-3 my-md-0 d-flex align-items-center">
+                        <span style="font-size: 60px">&#x1f195;</span>
+                        <div class="ml-2">
+                            <h2>Open a new ticket</h2>
+                            <a href="{% url 'new_ticket' %}" class="btn btn-success">New ticket</a>
+                        </div>
+                    </div>
+                    <div class="col-md-6 my-3 my-md-0 d-flex align-items-center">
+                        <span style="font-size: 60px">&#x1f50d;</span>
+                        <div class="ml-2">
+                            <h2>View ticket status</h2>
+                            {% if user.is_authenticated %}
+                                <a href="{% url 'tickets' %}" class="btn btn-info">View tickets</a>
+                            {% else %}
+                                <a href="{% url 'oidc_login' %}" class="btn btn-primary">Login to view tickets</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

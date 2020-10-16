@@ -1,0 +1,3 @@
+{{ message_txt }}
+
+To send a response simply reply to this email.

@@ -1,0 +1,200 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: support-django-test-static
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: support-django-test-media
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: support-django-test-conf
+data:
+  HOST: "support.test.as207960.net,support-test-nginx"
+  DJANGO_SETTINGS_MODULE: as207960_support.settings
+  EXTERNAL_URL: "https://support.test.as207960.net"
+  SENTRY_ENVIRONMENT: "test"
+  KEYCLOAK_SERVER_URL: "https://sso.as207960.net"
+  KEYCLOAK_REALM: test
+  KEYCLOAK_SCOPES: "openid email profile offline_access"
+  KEYCLOAK_CLIENT_ID: "support"
+  DB_HOST: "cockroachdb"
+  DB_NAME: "support-test"
+  FEEDBACK_URL: "none"
+  EMAIL_HOST: "mx.postal.as207960.net"
+  EMAIL_HOST_USER: "apikey"
+  EMAIL_PORT: "25"
+  EMAIL_FROM: "=?UTF-8?q?Glauca=20=2f=20AS207960=20Support=20=5bTEST=5d?= <hello-test@glauca.digital>"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: support-django-test
+  labels:
+    app: support-test
+    part: django
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: support-test
+      part: django
+  template:
+    metadata:
+      annotations:
+        cni.projectcalico.org/ipv6pools: "[\"default-ipv6-ippool\"]"
+      labels:
+        app: support-test
+        part: django
+    spec:
+      volumes:
+        - name: static
+          persistentVolumeClaim:
+            claimName: support-django-test-static
+        - name: media
+          persistentVolumeClaim:
+            claimName: support-django-test-media
+      initContainers:
+        - name: django
+          image: as207960/support-django:(version)
+          imagePullPolicy: Always
+          command: ["sh", "-c", "python3 manage.py collectstatic --noinput && python3 manage.py migrate && python3 manage.py sync-keycloak"]
+          volumeMounts:
+            - mountPath: "/app/static/"
+              name: static
+            - mountPath: "/app/media/"
+              name: media
+          envFrom:
+            - configMapRef:
+                name: support-django-test-conf
+            - secretRef:
+                name: support-db-test-creds
+              prefix: "DB_"
+            - secretRef:
+                name: support-django-test-secret
+            - secretRef:
+                name: support-test-keycloak
+              prefix: "KEYCLOAK_"
+            - secretRef:
+                name: support-test-email
+              prefix: "EMAIL_"
+            - secretRef:
+                name: support-test-celery
+              prefix: "CELERY_"
+      containers:
+        - name: gunicorn
+          image: as207960/support-django:(version)
+          imagePullPolicy: Always
+          command: ["gunicorn", "-w", "8", "-b", "[::]:8000", "--forwarded-allow-ips", "*", "--access-logfile", "-", "--timeout=90", "as207960_support.wsgi:application"]
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - mountPath: "/app/static/"
+              name: static
+            - mountPath: "/app/media/"
+              name: media
+          envFrom:
+            - configMapRef:
+                name: support-django-test-conf
+            - secretRef:
+                name: support-db-test-creds
+              prefix: "DB_"
+            - secretRef:
+                name: support-django-test-secret
+            - secretRef:
+                name: support-test-keycloak
+              prefix: "KEYCLOAK_"
+            - secretRef:
+                name: support-test-email
+              prefix: "EMAIL_"
+            - secretRef:
+                name: support-test-celery
+              prefix: "CELERY_"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: support-celery-test
+  labels:
+    app: support-test
+    part: celery
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: support-test
+      part: celery
+  template:
+    metadata:
+      annotations:
+        cni.projectcalico.org/ipv6pools: "[\"default-ipv6-ippool\"]"
+      labels:
+        app: support-test
+        part: celery
+    spec:
+      volumes:
+        - name: static
+          persistentVolumeClaim:
+            claimName: support-django-test-static
+        - name: media
+          persistentVolumeClaim:
+            claimName: support-django-test-media
+      containers:
+        - name: celery
+          image: as207960/support-django:(version)
+          imagePullPolicy: Always
+          command: ["celery", "worker", "-A", "as207960_support", "--loglevel=INFO", "-c", "32"]
+          volumeMounts:
+            - mountPath: "/app/static/"
+              name: static
+            - mountPath: "/app/media/"
+              name: media
+          envFrom:
+            - configMapRef:
+                name: support-django-test-conf
+            - secretRef:
+                name: support-db-test-creds
+              prefix: "DB_"
+            - secretRef:
+                name: support-django-test-secret
+            - secretRef:
+                name: support-test-keycloak
+              prefix: "KEYCLOAK_"
+            - secretRef:
+                name: support-test-email
+              prefix: "EMAIL_"
+            - secretRef:
+                name: support-test-celery
+              prefix: "CELERY_"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: support-django-test
+  labels:
+    app: support-test
+    part: django
+spec:
+  selector:
+    app: support-test
+    part: django
+  ports:
+    - port: 8000
+      targetPort: 8000

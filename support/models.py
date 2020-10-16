@@ -49,9 +49,11 @@ def create_user_profile(sender, instance, created, **kwargs):
 def make_ticket_ref():
     while True:
         possible_ref = secrets.token_hex(4).upper()
-        ticket = Ticket.objects.filter(ref=possible_ref).first()
-        if not ticket:
-            print(possible_ref)
+        try:
+            ticket = Ticket.objects.filter(ref=possible_ref).first()
+            if not ticket:
+                return possible_ref
+        except django.db.ProgrammingError:
             return possible_ref
 
 

@@ -1,0 +1,19 @@
+{% extends 'support/base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+    <section class="stripe">
+        <div class="container my-5">
+            <div class="jumbotron">
+                <h1 class="display-4">New ticket</h1>
+                <hr>
+                {% crispy ticket_form ticket_form.helper %}
+            </div>
+        </div>
+    </section>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <script>
+        function onFormSubmit(_) {
+            document.getElementById("newTicketForm").submit();
+        }
+    </script>
+{% endblock %}

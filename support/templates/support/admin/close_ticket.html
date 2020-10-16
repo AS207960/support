@@ -1,0 +1,14 @@
+{% extends 'support/base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+    <section class="stripe">
+        <div class="container my-5">
+            <div class="jumbotron">
+                <h1 class="display-4">Close ticket #{{ ticket.ref }}</h1>
+                <h2>{{ ticket.subject }}</h2>
+                <hr>
+                {% crispy ticket_close_form ticket_close_form.helper %}
+            </div>
+        </div>
+    </section>
+{% endblock %}

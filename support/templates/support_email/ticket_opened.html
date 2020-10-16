@@ -1,0 +1,36 @@
+{% extends "support_email/email_base.html" %}
+{% block content %}
+    <table style="border-spacing: 0;width:100%;">
+        <tr>
+            <td>
+                <p>
+                    We have received your message and a ticket has been opened under #{{ ticket_ref }}.
+                    We aim to respond as soon as possible.
+                </p>
+            </td>
+            <td>
+                <img src="https://as207960.net/assets/img/shark-heart.png" height="100" alt=""/>
+            </td>
+        </tr>
+    </table>
+    {% if verification_url %}
+        <p>
+            We were not able to verify this request to an account. If you have an account please click the button
+            below to confirm that you sent this message.
+        </p>
+        <a href="{{ verification_url }}"
+           style="color: #fff;background-color: #3182CE;text-align: center;text-decoration: none;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);border-radius: .5rem;display: block;width: 100%;padding: 0.5rem 1rem;font-size: 1.25rem;line-height: 1.5;">
+            Confirm email
+        </a>
+        <p>
+            If you cannot login to your account, please ignore this message and wait for our reply.
+        </p>
+        <p>
+	        If you did not send us a support message recently, please let us know immediately by replying to this email.
+        </p>
+        <p>
+            In the future, you can use <a href="{{ support_form_url }}">our contact form</a> to avoid having to
+            authenticate emails.
+        </p>
+    {% endif %}
+{% endblock %}

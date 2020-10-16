@@ -1,0 +1,68 @@
+{% extends 'support/base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+    <section class="stripe">
+        <div class="container my-5">
+            <div class="jumbotron">
+                <h1 class="display-4">Ticket #{{ ticket.ref }}</h1>
+                <h2>{{ ticket.subject }}</h2>
+                <div class="row mt-2">
+                    <div class="col">
+                        <b>Status:</b>
+                        {% if ticket.state == "O" %}
+                            <span class="badge badge-pill badge-success">Open</span>
+                        {% elif ticket.state == "C" %}
+                            <span class="badge badge-pill badge-danger">Closed</span>
+                        {% else %}
+                            {{ ticket.get_state_display }}
+                        {% endif %}
+                        <br>
+                        <b>Authenticated:</b>
+                        {% if ticket.customer_verified %}
+                            <span class="badge badge-success">Yes</span>
+                        {% else %}
+                            <span class="badge badge-danger">No</span>
+                            <a href="{% url 'verify-ticket-alt' ticket.id %}" class="btn btn-primary btn-sm">Authenticate ticket</a>
+                        {% endif %}
+                    </div>
+                    <div class="col">
+                        <b>Last message: </b>
+                        {% if ticket.last_message %}{{ ticket.last_message.date }}{% else %}N/A{% endif %}
+                        <br>
+                        <b>Last response: </b>
+                        {% if ticket.last_response %}{{ ticket.last_response.date }}{% else %}N/A{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <div class="container mt-5">
+        <h3>Ticket thread</h3>
+        {% for message in ticket.messages.all %}
+            {% if message.type == "C" or message.type == "R" %}
+                <div class="card my-3{% if message.type == "C" %} border-primary{% elif message.type == "R" %} border-success{% endif %}">
+                    <div class="card-header">
+                        {{ message.date }}
+                        - <b>
+                            {% if message.type == "C" %}
+                                Your message
+                            {% elif message.type == "R" %}
+                                Response
+                            {% endif %}
+                        </b>
+                    </div>
+                    <div class="card-body">
+                        {{ message.message_safe|safe }}
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% if ticket.state != ticket.STATE_CLOSED %}
+        <div class="container my-3">
+            <div class="jumbotron">
+                {% crispy ticket_reply_form ticket_reply_form.helper %}
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

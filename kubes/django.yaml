@@ -1,0 +1,487 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: domains-django-static
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: domains-django-media
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: domains-django-conf
+data:
+  HOST: "domains.glauca.digital,domains-nginx"
+  DJANGO_SETTINGS_MODULE: as207960_domains.settings
+  EXTERNAL_URL: "https://domains.glauca.digital"
+  SENTRY_ENVIRONMENT: "prod"
+  KEYCLOAK_SERVER_URL: "https://sso.as207960.net"
+  KEYCLOAK_REALM: master
+  KEYCLOAK_SCOPES: "openid email profile offline_access"
+  KEYCLOAK_CLIENT_ID: "domains"
+  DB_HOST: "cockroachdb"
+  DB_NAME: "domains"
+  BILLING_URL: "http://billing-nginx"
+  HEXDNS_URL: "https://dns.glauca.digital"
+  FEEDBACK_URL: "http://feedback-nginx"
+  EPP_PROXY_ADDR: "epp-proxy:50051"
+  EPP_PROXY_CA: "/ca-cert/ca.pem"
+  EMAIL_HOST: "mx.postal.as207960.net"
+  EMAIL_HOST_USER: "apikey"
+  EMAIL_PORT: "25"
+  EMAIL_FROM: "Glauca Domains <domains@glauca.digital>"
+  GCHAT_PROJECT_ID: "226795660453"
+  GCHAT_SERVICE_ACCOUNT_FILE: "/google-creds/sa.json"
+  PRIV_KEY_LOCATION: "/privkey/privkey.pem"
+  RESOLVER_ADDR: "hexdns-unbound"
+  RESOLVER_PORT: "5053"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: domains-django
+  labels:
+    app: domains
+    part: django
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: domains
+      part: django
+  template:
+    metadata:
+      annotations:
+        cni.projectcalico.org/ipv6pools: "[\"default-ipv6-ippool\"]"
+      labels:
+        app: domains
+        part: django
+    spec:
+      volumes:
+        - name: static
+          persistentVolumeClaim:
+            claimName: domains-django-static
+        - name: media
+          persistentVolumeClaim:
+            claimName: domains-django-media
+        - name: ca-cert
+          configMap:
+            name: epp-ca
+        - name: google-creds
+          secret:
+            secretName: domains-google-creds
+        - name: privkey
+          secret:
+            secretName: domains-jwt-priv
+      initContainers:
+        - name: django
+          image: as207960/domains-django:(version)
+          imagePullPolicy: Always
+          command: ["sh", "-c", "python3 manage.py collectstatic --noinput && python3 manage.py migrate && python3 manage.py sync-keycloak"]
+          volumeMounts:
+            - mountPath: "/app/static/"
+              name: static
+            - mountPath: "/app/media/"
+              name: media
+            - mountPath: "/ca-cert/"
+              name: ca-cert
+            - mountPath: "/google-creds/"
+              name: google-creds
+            - mountPath: "/privkey/"
+              name: privkey
+          envFrom:
+            - configMapRef:
+                name: domains-django-conf
+            - secretRef:
+                name: domains-db-creds
+              prefix: "DB_"
+            - secretRef:
+                name: domains-django-secret
+            - secretRef:
+                name: domains-keycloak
+              prefix: "KEYCLOAK_"
+            - secretRef:
+                name: domains-email
+              prefix: "EMAIL_"
+            - secretRef:
+                name: domains-celery
+              prefix: "CELERY_"
+            - secretRef:
+                name: verisign-ns-key
+              prefix: "VERISIGN_NS_"
+      containers:
+        - name: gunicorn
+          image: as207960/domains-django:(version)
+          imagePullPolicy: Always
+          command: ["gunicorn", "-w", "8", "-b", "[::]:8000", "--forwarded-allow-ips", "*", "--access-logfile", "-", "--log-level=debug", "--timeout=90", "as207960_domains.wsgi:application"]
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - mountPath: "/app/static/"
+              name: static
+            - mountPath: "/app/media/"
+              name: media
+            - mountPath: "/ca-cert/"
+              name: ca-cert
+            - mountPath: "/google-creds/"
+              name: google-creds
+            - mountPath: "/privkey/"
+              name: privkey
+          envFrom:
+            - configMapRef:
+                name: domains-django-conf
+            - secretRef:
+                name: domains-db-creds
+              prefix: "DB_"
+            - secretRef:
+                name: domains-django-secret
+            - secretRef:
+                name: domains-keycloak
+              prefix: "KEYCLOAK_"
+            - secretRef:
+                name: domains-email
+              prefix: "EMAIL_"
+            - secretRef:
+                name: domains-celery
+              prefix: "CELERY_"
+            - secretRef:
+                name: verisign-ns-key
+              prefix: "VERISIGN_NS_"
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: domains-run-renewal
+spec:
+  schedule: "00 5 * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          annotations:
+            cni.projectcalico.org/ipv6pools: "[\"default-ipv6-ippool\"]"
+          labels:
+            app: domains
+            part: django
+        spec:
+          volumes:
+            - name: static
+              persistentVolumeClaim:
+                claimName: domains-django-static
+            - name: media
+              persistentVolumeClaim:
+                claimName: domains-django-media
+            - name: ca-cert
+              configMap:
+                name: epp-ca
+            - name: google-creds
+              secret:
+                secretName: domains-google-creds
+            - name: privkey
+              secret:
+                secretName: domains-jwt-priv
+          containers:
+            - name: django
+              image: as207960/domains-django:(version)
+              imagePullPolicy: Always
+              command: ["sh", "-c", "python3 manage.py run-renewal"]
+              volumeMounts:
+                - mountPath: "/app/static/"
+                  name: static
+                - mountPath: "/app/media/"
+                  name: media
+                - mountPath: "/ca-cert/"
+                  name: ca-cert
+                - mountPath: "/google-creds/"
+                  name: google-creds
+                - mountPath: "/privkey/"
+                  name: privkey
+              envFrom:
+                - configMapRef:
+                    name: domains-django-conf
+                - secretRef:
+                    name: domains-db-creds
+                  prefix: "DB_"
+                - secretRef:
+                    name: domains-django-secret
+                - secretRef:
+                    name: domains-keycloak
+                  prefix: "KEYCLOAK_"
+                - secretRef:
+                    name: domains-email
+                  prefix: "EMAIL_"
+                - secretRef:
+                    name: domains-celery
+                  prefix: "CELERY_"
+                - secretRef:
+                    name: verisign-ns-key
+                  prefix: "VERISIGN_NS_"
+          restartPolicy: OnFailure
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: domains-run-cds
+spec:
+  schedule: "17 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          annotations:
+            cni.projectcalico.org/ipv6pools: "[\"default-ipv6-ippool\"]"
+          labels:
+            app: domains
+            part: django
+        spec:
+          volumes:
+            - name: static
+              persistentVolumeClaim:
+                claimName: domains-django-static
+            - name: media
+              persistentVolumeClaim:
+                claimName: domains-django-media
+            - name: ca-cert
+              configMap:
+                name: epp-ca
+            - name: google-creds
+              secret:
+                secretName: domains-google-creds
+            - name: privkey
+              secret:
+                secretName: domains-jwt-priv
+          containers:
+            - name: django
+              image: as207960/domains-django:(version)
+              imagePullPolicy: Always
+              command: ["sh", "-c", "python3 manage.py run-cds"]
+              volumeMounts:
+                - mountPath: "/app/static/"
+                  name: static
+                - mountPath: "/app/media/"
+                  name: media
+                - mountPath: "/ca-cert/"
+                  name: ca-cert
+                - mountPath: "/google-creds/"
+                  name: google-creds
+                - mountPath: "/privkey/"
+                  name: privkey
+              envFrom:
+                - configMapRef:
+                    name: domains-django-conf
+                - secretRef:
+                    name: domains-db-creds
+                  prefix: "DB_"
+                - secretRef:
+                    name: domains-django-secret
+                - secretRef:
+                    name: domains-keycloak
+                  prefix: "KEYCLOAK_"
+                - secretRef:
+                    name: domains-email
+                  prefix: "EMAIL_"
+                - secretRef:
+                    name: domains-celery
+                  prefix: "CELERY_"
+                - secretRef:
+                    name: verisign-ns-key
+                  prefix: "VERISIGN_NS_"
+          restartPolicy: OnFailure
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: domain-celery
+  labels:
+    app: domains
+    part: celery
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: domains
+      part: celery
+  template:
+    metadata:
+      annotations:
+        cni.projectcalico.org/ipv6pools: "[\"default-ipv6-ippool\"]"
+      labels:
+        app: domains
+        part: celery
+    spec:
+      volumes:
+        - name: static
+          persistentVolumeClaim:
+            claimName: domains-django-static
+        - name: media
+          persistentVolumeClaim:
+            claimName: domains-django-media
+        - name: ca-cert
+          configMap:
+            name: epp-ca
+        - name: google-creds
+          secret:
+            secretName: domains-google-creds
+        - name: privkey
+          secret:
+            secretName: domains-jwt-priv
+      containers:
+        - name: grpc
+          image: as207960/domains-django:(version)
+          imagePullPolicy: Always
+          command: ["celery", "worker", "-A", "as207960_domains", "--loglevel=INFO", "-c", "32"]
+          ports:
+            - containerPort: 50051
+          volumeMounts:
+            - mountPath: "/app/static/"
+              name: static
+            - mountPath: "/app/media/"
+              name: media
+            - mountPath: "/ca-cert/"
+              name: ca-cert
+            - mountPath: "/google-creds/"
+              name: google-creds
+            - mountPath: "/privkey/"
+              name: privkey
+          envFrom:
+            - configMapRef:
+                name: domains-django-conf
+            - secretRef:
+                name: domains-db-creds
+              prefix: "DB_"
+            - secretRef:
+                name: domains-django-secret
+            - secretRef:
+                name: domains-keycloak
+              prefix: "KEYCLOAK_"
+            - secretRef:
+                name: domains-email
+              prefix: "EMAIL_"
+            - secretRef:
+                name: domains-celery
+              prefix: "CELERY_"
+            - secretRef:
+                name: verisign-ns-key
+              prefix: "VERISIGN_NS_"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: domain-whois-grpc
+  labels:
+    app: domains
+    part: whois
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: domains
+      part: whois
+  template:
+    metadata:
+      annotations:
+        cni.projectcalico.org/ipv6pools: "[\"default-ipv6-ippool\"]"
+      labels:
+        app: domains
+        part: whois
+    spec:
+      volumes:
+        - name: static
+          persistentVolumeClaim:
+            claimName: domains-django-static
+        - name: media
+          persistentVolumeClaim:
+            claimName: domains-django-media
+        - name: ca-cert
+          configMap:
+            name: epp-ca
+        - name: google-creds
+          secret:
+            secretName: domains-google-creds
+        - name: privkey
+          secret:
+            secretName: domains-jwt-priv
+      containers:
+        - name: grpc
+          image: as207960/domains-django:(version)
+          imagePullPolicy: Always
+          command: ["sh", "-c", "python3 manage.py grpcserver -v 2 --traceback"]
+          ports:
+            - containerPort: 50051
+          volumeMounts:
+            - mountPath: "/app/static/"
+              name: static
+            - mountPath: "/app/media/"
+              name: media
+            - mountPath: "/ca-cert/"
+              name: ca-cert
+            - mountPath: "/google-creds/"
+              name: google-creds
+            - mountPath: "/privkey/"
+              name: privkey
+          envFrom:
+            - configMapRef:
+                name: domains-django-conf
+            - secretRef:
+                name: domains-db-creds
+              prefix: "DB_"
+            - secretRef:
+                name: domains-django-secret
+            - secretRef:
+                name: domains-keycloak
+              prefix: "KEYCLOAK_"
+            - secretRef:
+                name: domains-email
+              prefix: "EMAIL_"
+            - secretRef:
+                name: domains-celery
+              prefix: "CELERY_"
+            - secretRef:
+                name: verisign-ns-key
+              prefix: "VERISIGN_NS_"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: domains-django
+  labels:
+    app: domains
+    part: django
+spec:
+  selector:
+    app: domains
+    part: django
+  ports:
+    - port: 8000
+      targetPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: domains-whois-grpc
+  labels:
+    app: domains
+    part: whois
+spec:
+  selector:
+    app: domains
+    part: whois
+  ports:
+    - port: 50051
+      targetPort: 50051

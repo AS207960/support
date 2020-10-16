@@ -1,0 +1,20 @@
+{% extends "support_email/email_base.html" %}
+{% block content %}
+    <table style="border-spacing: 0;width:100%;">
+        <tr>
+            <td>
+                <p>
+                    Your ticket under #{{ ticket_ref }} has been closed.
+                    We hope we were able to complete your request to your satisfaction.
+                </p>
+
+                <p>
+                    Please do not reply to this email to send additional comments, open a new ticket instead.
+                </p>
+            </td>
+            <td>
+                <img src="https://as207960.net/assets/img/shark-heart.png" height="100" alt=""/>
+            </td>
+        </tr>
+    </table>
+{% endblock %}

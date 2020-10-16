@@ -1,0 +1,16 @@
+{% extends "support_email/email_base.txt" %}
+{% block content %}
+We have received your message and a ticket has been opened under #{{ ticket_ref }}.
+We aim to respond as soon as possible.{% if verification_url %}
+
+We where not able to verify this request to an account. If you have an account please click the link below to confirm that you sent this message.
+
+{{ verification_url }}
+
+If you cannot login to your account, please ignore this message and wait for our reply.
+
+If you did not send us a support message recently, please let us know immediately by replying to this email.
+
+In the future, you can use our contact form (link below) to avoid having to authenticate emails.
+{{ support_form_url }}{% endif %}
+{% endblock content %}

@@ -1,0 +1,18 @@
+{% extends 'support/base.html' %}
+{% block content %}
+    <section class="stripe">
+        <div class="container my-5">
+            <div class="jumbotron">
+                <h1 class="display-4">Ticket created</h1>
+                <hr>
+                <p>
+                    A ticket has been created and we'll get back to you as soon as possible.
+                </p>
+                <p>
+                    Additional details have been sent to <b>{{ ticket_email }}</b>. If you wish to send messages
+                    regarding same subject, please follow the instructions in the email.
+                </p>
+            </div>
+        </div>
+    </section>
+{% endblock %}

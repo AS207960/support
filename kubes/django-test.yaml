@@ -42,6 +42,9 @@ data:
   EMAIL_HOST_USER: "apikey"
   EMAIL_PORT: "25"
   EMAIL_FROM: "=?UTF-8?q?Glauca=20=2f=20AS207960=20Support=20=5bTEST=5d?= <hello-test@glauca.digital>"
+  POSTAL_PUBLIC_KEY: >-
+    MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQChELn1Fkauo6bduyGeXNca/z27OYNMd85JZMlNiycfFHaAXzgPd53OKVSbyzBuILFPYmzkfaF
+    uOCW2qgvFd8cAye6qLsUAqEetiuRTPpAysX3hss1TqIML51kb0ADTmylKi3Hr553qrDy9AEMFmvaKnTH8o0YFozGk0QtlmiLtXQIDAQAB
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -160,7 +163,7 @@ spec:
         - name: celery
           image: as207960/support-django:(version)
           imagePullPolicy: Always
-          command: ["celery", "worker", "-A", "as207960_support", "--loglevel=INFO", "-c", "32"]
+          command: ["celery", "-A", "as207960_support", "worker", "--loglevel=INFO", "-c", "32"]
           volumeMounts:
             - mountPath: "/app/static/"
               name: static

@@ -189,6 +189,8 @@ CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
 CELERY_TASK_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
 
+POSTAL_PUBLIC_KEY = os.getenv("POSTAL_PUBLIC_KEY")
+
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',

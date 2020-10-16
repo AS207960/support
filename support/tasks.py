@@ -56,6 +56,7 @@ def send_open_ticket_email(ticket_id, verified: bool):
     verification_url = None
     if not verified:
         ticket.verification_token = secrets.token_urlsafe(64)
+        ticket.save()
         verification_url = settings.EXTERNAL_URL_BASE + reverse('verify_ticket', args=(ticket.verification_token,))
 
     context = {

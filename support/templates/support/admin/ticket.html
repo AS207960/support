@@ -113,6 +113,13 @@
                 <div class="card-body">
                     {{ message.message_safe|safe }}
                 </div>
+                {% if message.ticketmessageattachment_set.all %}
+                    <ul class="list-group list-group-flush">
+                        {% for attachment in message.ticketmessageattachment_set.all %}
+                            <li class="list-group-item"><a href="{{ attachment.file.url }}" target="_blank">{{ attachment.file_name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
             </div>
         {% endfor %}
     </div>

@@ -180,7 +180,7 @@ def claim_ticket(ticket: models.Ticket, agent):
     autoretry_for=(Exception,), retry_backoff=1, retry_backoff_max=60, max_retries=None, default_retry_delay=3
 )
 def send_close_ticket_email(ticket_id):
-    ticket = models.TicketMessage.objects.get(id=ticket_id)
+    ticket = models.Ticket.objects.get(id=ticket_id)
     feedback_url = get_feedback_url(ticket.subject, ticket.id)
 
     context = {

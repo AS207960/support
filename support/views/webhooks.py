@@ -124,7 +124,7 @@ def postal(request):
 
     for attachment in message.iter_attachments():
         file_name = attachment.get_filename(failobj="Untitled"),
-        file = files.base.ContentFile(io.BytesIO(attachment.get_payload(decode=True)), name=file_name)
+        file = files.base.ContentFile(attachment.get_payload(decode=True), name=file_name)
         message_attachment = models.TicketMessageAttachment(
             message=new_message,
             file_name=file_name,

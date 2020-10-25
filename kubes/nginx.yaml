@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: domains-nginx-conf
+  name: support-nginx-conf
 data:
   nginx.conf: |
     user  nginx;
@@ -32,7 +32,7 @@ data:
 
       server {
         listen       [::]:80;
-        server_name  domains.glauca.digital;
+        server_name  support.as207960.net
 
         root /data/;
 
@@ -41,7 +41,7 @@ data:
         }
 
         location @proxy_to_app {
-          proxy_pass      http://domains-django:8000;
+          proxy_pass      http://support-django:8000;
 
           proxy_http_version 1.1;
 
@@ -58,34 +58,34 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: domains-nginx
+  name: support-nginx
   labels:
-    app: domains
+    app: support
     part: nginx
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: domains
+      app: support
       part: nginx
   template:
     metadata:
       annotations:
         cni.projectcalico.org/ipv6pools: "[\"default-ipv6-ippool\"]"
       labels:
-        app: domains
+        app: support
         part: nginx
     spec:
       volumes:
         - name: static
           persistentVolumeClaim:
-            claimName: domains-django-static
+            claimName: support-django-static
         - name: media
           persistentVolumeClaim:
-            claimName: domains-django-media
+            claimName: support-django-media
         - name: conf
           configMap:
-            name: domains-nginx-conf
+            name: support-nginx-conf
       containers:
         - name: nginx
           image: nginx
@@ -103,13 +103,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: domains-nginx
+  name: support-nginx
   labels:
-    app: domains
+    app: support
     part: nginx
 spec:
   selector:
-    app: domains
+    app: support
     part: nginx
   ports:
     - port: 80
@@ -119,20 +119,20 @@ spec:
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
-  name: domains-ingress
+  name: support-ingress
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt"
     nginx.ingress.kubernetes.io/proxy-body-size: "0"
 spec:
   tls:
     - hosts:
-        - domains.glauca.digital
-      secretName: domains-tls
+        - support.as207960.net
+      secretName: support-tls
   rules:
-  - host: domains.glauca.digital
+  - host: support.as207960.net
     http:
       paths:
       - path: /
         backend:
-          serviceName: domains-nginx
+          serviceName: support-nginx
           servicePort: 80

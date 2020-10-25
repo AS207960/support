@@ -188,11 +188,11 @@ def send_close_ticket_email(ticket_id):
         "ticket_ref": ticket.ref,
         "feedback_url": feedback_url
     }
-    html_content = render_to_string("support_email/ticket_closed.txt", context)
-    txt_content = render_to_string("support_email/ticket_closed.html", context)
+    html_content = render_to_string("support_email/ticket_closed.html", context)
+    txt_content = render_to_string("support_email/ticket_closed.txt", context)
 
     email = make_ticket_email(ticket)
-    email.subject = f'Ticket closed - {ticket.subject}',
+    email.subject = f'Ticket closed - {ticket.subject}'
     email.body = txt_content
     email.attach_alternative(html_content, "text/html")
     email.send()

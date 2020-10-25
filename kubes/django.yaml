@@ -37,7 +37,7 @@ data:
   KEYCLOAK_CLIENT_ID: "support"
   DB_HOST: "cockroachdb"
   DB_NAME: "support"
-  FEEDBACK_URL: "http://feedback-test"
+  FEEDBACK_URL: "http://feedback-nginx"
   EMAIL_HOST: "mx.postal.as207960.net"
   EMAIL_HOST_USER: "apikey"
   EMAIL_PORT: "25"

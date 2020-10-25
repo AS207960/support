@@ -123,7 +123,7 @@ def postal(request):
         new_message = tasks.post_message(ticket, html_body, email_id=message['message-id'], date=message_date)
 
     for attachment in message.iter_attachments():
-        file_name = attachment.get_filename(failobj="Untitled"),
+        file_name = attachment.get_filename(failobj="Untitled")
         file = files.base.ContentFile(attachment.get_payload(decode=True), name=file_name)
         message_attachment = models.TicketMessageAttachment(
             message=new_message,

@@ -43,13 +43,13 @@
                             <td>{{ ticket.customer.full_name }}</td>
                             <td>
                                 {% if ticket.priority == ticket.PRIORITY_LOW %}
-                                    <span class="badge badge-pill badge-secondary">Low</span>
+                                    <span class="badge badge-pill bg-secondary">Low</span>
                                 {% elif ticket.priority == ticket.PRIORITY_NORMAL %}
-                                    <span class="badge badge-pill badge-primary">Normal</span>
+                                    <span class="badge badge-pill bg-primary">Normal</span>
                                 {% elif ticket.priority == ticket.PRIORITY_HIGH %}
-                                    <span class="badge badge-pill badge-warning">High</span>
+                                    <span class="badge badge-pill bg-warning">High</span>
                                 {% elif ticket.priority == ticket.PRIORITY_EMERGENCY %}
-                                    <span class="badge badge-pill badge-danger">Emergency</span>
+                                    <span class="badge badge-pill bg-danger">Emergency</span>
                                 {% endif %}
                             </td>
                             <td>

@@ -23,22 +23,22 @@
                     <div class="col">
                         <b>Status:</b>
                         {% if ticket.state == "O" %}
-                            <span class="badge badge-pill badge-success">Open</span>
+                            <span class="badge badge-pill bg-success">Open</span>
                         {% elif ticket.state == "C" %}
-                            <span class="badge badge-pill badge-danger">Closed</span>
+                            <span class="badge badge-pill bg-danger">Closed</span>
                         {% else %}
                             {{ ticket.get_state_display }}
                         {% endif %}
                         <br>
                         <b>Priority:</b>
                         {% if ticket.priority == ticket.PRIORITY_LOW %}
-                            <span class="badge badge-pill badge-secondary">Low</span>
+                            <span class="badge badge-pill bg-secondary">Low</span>
                         {% elif ticket.priority == ticket.PRIORITY_NORMAL %}
-                            <span class="badge badge-pill badge-primary">Normal</span>
+                            <span class="badge badge-pill bg-primary">Normal</span>
                         {% elif ticket.priority == ticket.PRIORITY_HIGH %}
-                            <span class="badge badge-pill badge-warning">High</span>
+                            <span class="badge badge-pill bg-warning">High</span>
                         {% elif ticket.priority == ticket.PRIORITY_EMERGENCY %}
-                            <span class="badge badge-pill badge-danger">Emergency</span>
+                            <span class="badge badge-pill bg-danger">Emergency</span>
                         {% else %}
                             {{ ticket.get_priority_display }}
                         {% endif %}
@@ -62,9 +62,9 @@
                     <div class="col">
                         <b>Name: </b> {{ ticket.customer.full_name }}
                         {% if ticket.customer_verified %}
-                            <span class="badge badge-success">Verified</span>
+                            <span class="badge bg-success">Verified</span>
                         {% else %}
-                            <span class="badge badge-danger">Unverified</span>
+                            <span class="badge bg-danger">Unverified</span>
                         {% endif %}
                         <br>
                         <b>Email:</b> {{ ticket.customer.email }}

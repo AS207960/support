@@ -3,7 +3,7 @@
 {% block content %}
     <section class="stripe">
         <div class="container my-5">
-            <div class="jumbotron">
+            <div class="bg-light p-3 rounded my-4">
                 <h1 class="display-4">Ticket #{{ ticket.ref }}</h1>
                 <h2>{{ ticket.subject }}</h2>
                 {% if perms.support.change_ticket %}
@@ -124,7 +124,7 @@
         {% endfor %}
     </div>
     <div class="container my-3">
-        <div class="jumbotron">
+        <div class="bg-light p-3 rounded my-4">
             <ul class="nav nav-pills" role="tablist">
                 <li class="nav-item">
                     <a class="nav-link active" id="reply-tab" data-toggle="tab" href="#reply" role="tab"

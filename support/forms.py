@@ -28,6 +28,8 @@ class TicketForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         self.helper = crispy_forms.helper.FormHelper()
+        self.helper.use_custom_control = False
+        self.helper.field_class = 'my-1'
         self.helper.form_id = "newTicketForm"
         self.helper.layout = crispy_forms.layout.Layout(
             crispy_forms.layout.Fieldset(
@@ -70,6 +72,8 @@ class TicketReplyForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         self.helper = crispy_forms.helper.FormHelper()
+        self.helper.use_custom_control = False
+        self.helper.field_class = 'my-1'
         self.helper.layout = crispy_forms.layout.Layout(
             'message',
             crispy_forms.layout.HTML(
@@ -100,6 +104,8 @@ class TicketCustomerReplyForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         self.helper = crispy_forms.helper.FormHelper()
+        self.helper.use_custom_control = False
+        self.helper.field_class = 'my-1'
         self.helper.layout = crispy_forms.layout.Layout(
             'message',
             crispy_forms.layout.HTML(
@@ -125,6 +131,8 @@ class TicketNoteForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         self.helper = crispy_forms.helper.FormHelper()
+        self.helper.use_custom_control = False
+        self.helper.field_class = 'my-1'
         self.helper.layout = crispy_forms.layout.Layout(
             'message',
             crispy_forms.layout.Hidden('type', 'ticket_note')
@@ -146,6 +154,8 @@ class TicketEditForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         self.helper = crispy_forms.helper.FormHelper()
+        self.helper.use_custom_control = False
+        self.helper.field_class = 'my-1'
         self.helper.layout = crispy_forms.layout.Layout(
             'source',
             'priority',
@@ -167,6 +177,8 @@ class TicketCloseForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         self.helper = crispy_forms.helper.FormHelper()
+        self.helper.use_custom_control = False
+        self.helper.field_class = 'my-1'
         self.helper.layout = crispy_forms.layout.Layout(
             'message',
             crispy_forms.layout.ButtonHolder(
@@ -193,6 +205,8 @@ class TicketReopenForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         self.helper = crispy_forms.helper.FormHelper()
+        self.helper.use_custom_control = False
+        self.helper.field_class = 'my-1'
         self.helper.layout = crispy_forms.layout.Layout(
             'message',
             crispy_forms.layout.ButtonHolder(

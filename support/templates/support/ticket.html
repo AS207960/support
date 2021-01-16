@@ -3,7 +3,7 @@
 {% block content %}
     <section class="stripe">
         <div class="container my-5">
-            <div class="jumbotron">
+            <div class="bg-light p-3 rounded my-4">
                 <h1 class="display-4">Ticket #{{ ticket.ref }}</h1>
                 <h2>{{ ticket.subject }}</h2>
                 <div class="row mt-2">
@@ -60,7 +60,7 @@
     </div>
     {% if ticket.state != ticket.STATE_CLOSED %}
         <div class="container my-3">
-            <div class="jumbotron">
+            <div class="bg-light p-3 rounded my-4">
                 {% crispy ticket_reply_form ticket_reply_form.helper %}
             </div>
         </div>

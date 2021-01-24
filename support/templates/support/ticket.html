@@ -10,18 +10,18 @@
                     <div class="col">
                         <b>Status:</b>
                         {% if ticket.state == "O" %}
-                            <span class="badge badge-pill badge-success">Open</span>
+                            <span class="badge badge-pill bg-success">Open</span>
                         {% elif ticket.state == "C" %}
-                            <span class="badge badge-pill badge-danger">Closed</span>
+                            <span class="badge badge-pill bg-danger">Closed</span>
                         {% else %}
                             {{ ticket.get_state_display }}
                         {% endif %}
                         <br>
                         <b>Authenticated:</b>
                         {% if ticket.customer_verified %}
-                            <span class="badge badge-success">Yes</span>
+                            <span class="badge bg-success">Yes</span>
                         {% else %}
-                            <span class="badge badge-danger">No</span>
+                            <span class="badge bg-danger">No</span>
                             <a href="{% url 'verify-ticket-alt' ticket.id %}" class="btn btn-primary btn-sm">Authenticate ticket</a>
                         {% endif %}
                     </div>

@@ -95,7 +95,7 @@ class Ticket(models.Model):
     state = models.CharField(max_length=1, choices=STATES, default=STATE_OPEN)
     source = models.CharField(max_length=1, choices=SOURCES, default=SOURCE_OTHER)
     priority = models.CharField(max_length=1, choices=PRIORITIES, default=PRIORITY_NORMAL)
-    assigned_to = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True)
+    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True)
     due_date = models.DateTimeField(blank=True, null=True)
     subject = models.CharField(max_length=255)
 

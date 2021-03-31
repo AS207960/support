@@ -29,7 +29,7 @@ SECRET_KEY = 'tGanF@BBkQCb2A!uM4JzR283@dt%RCmuQgsrrABumx5En*WJCUEyRQg8nJo$EXCf'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "45.129.95.4", "pc.home.misell.cymru"]
+ALLOWED_HOSTS = ["localhost", "45.129.95.4", "as207960-support.eu.ngrok.io"]
 
 
 # Application definition
@@ -137,6 +137,9 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 EXTERNAL_URL_BASE = "http://localhost:8006"
+
+MEDIA_URL = f"{EXTERNAL_URL_BASE}/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 CRISPY_TEMPLATE_PACK = "bootstrap4"
 CRISPY_FAIL_SILENTLY = not DEBUG

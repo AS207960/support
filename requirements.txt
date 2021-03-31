@@ -17,3 +17,4 @@ lxml
 talon
 celery
 pycrypto
+beautifulsoup4

@@ -16,6 +16,9 @@ import email.policy
 import markdown2
 import talon.quotations
 import io
+import uuid
+import bs4
+import mimetypes
 from .. import models, tasks
 
 talon.init()
@@ -59,7 +62,6 @@ def postal(request):
 
     message = email.parser.BytesParser(_class=email.message.EmailMessage, policy=email.policy.SMTPUTF8)\
         .parsebytes(msg_bytes)
-    print(message)
 
     if 'message-id' in message:
         existing_message = models.TicketMessage.objects.filter(email_message_id=message['message-id']).first()
@@ -82,6 +84,31 @@ def postal(request):
                        message_date.datetime if message_date.datetime else timezone.now()
                    ) if message_date else timezone.now()
 
+    attachments = []
+    attachment_cid_map = {}
+
+    for attachment in message.iter_attachments():
+        file_name = attachment.get_filename(failobj="Untitled")
+        file_ext = mimetypes.guess_extension(attachment.get_content_type())
+        content_id = attachment["content-id"]
+        disk_file_name = models.TicketMessageAttachment.file.field.generate_filename(
+            None, f"{str(uuid.uuid4().hex)}{file_ext}"
+        )
+        content = io.BytesIO(attachment.get_payload(decode=True))
+        final_name = models.TicketMessageAttachment.file.field.storage.save(
+            disk_file_name, content, max_length=models.TicketMessageAttachment.file.field.max_length
+        )
+        file_url = models.TicketMessageAttachment.file.field.storage.url(final_name)
+        attachments.append({
+            "file_name": file_name,
+            "disk_file_name": final_name,
+        })
+        if content_id:
+            content_id = str(content_id)
+            if content_id.startswith("<") and content_id.endswith(">"):
+                content_id = content_id[1:-1]
+                attachment_cid_map[content_id] = file_url
+
     html_body = message.get_body(('html',))
     if not html_body:
         plain_body = message.get_body(('plain',))
@@ -94,6 +121,28 @@ def postal(request):
             html_body = markdown.convert(plain_body)
     else:
         html_body = talon.quotations.extract_from(html_body.get_content(), html_body.get_content_type())
+
+    soup = bs4.BeautifulSoup(html_body, 'html.parser')
+
+    def replace_url(tag: str, attr: str):
+        for img_tag in soup.find_all(tag):
+            src = img_tag[attr]
+            if src.startswith("cid:"):
+                cid = src[4:]
+                new_url = attachment_cid_map.get(cid)
+                if new_url:
+                    img_tag[attr] = new_url
+
+    replace_url('img', 'src')
+    replace_url('script', 'src')
+    replace_url('link', 'href')
+    replace_url('audio', 'src')
+    replace_url('video', 'src')
+    replace_url('iframe', 'src')
+    replace_url('embed', 'src')
+    replace_url('source', 'src')
+
+    html_body = str(soup)
 
     references = message['references']
     in_reply_to = message['in-reply-to']
@@ -122,14 +171,12 @@ def postal(request):
     else:
         new_message = tasks.post_message(ticket, html_body, email_id=message['message-id'], date=message_date)
 
-    for attachment in message.iter_attachments():
-        file_name = attachment.get_filename(failobj="Untitled")
-        file = files.base.ContentFile(attachment.get_payload(decode=True), name=file_name)
+    for attachment in attachments:
         message_attachment = models.TicketMessageAttachment(
             message=new_message,
-            file_name=file_name,
-            file=file
+            file_name=attachment["file_name"]
         )
+        message_attachment.file.name = attachment["disk_file_name"]
         message_attachment.save()
 
     return HttpResponse(status=200)

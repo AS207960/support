@@ -32,7 +32,7 @@ data:
 
       server {
         listen       [::]:80;
-        server_name  support.test.as207960.net
+        server_name  support.test.as207960.net;
 
         root /data/;
 

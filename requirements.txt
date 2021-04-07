@@ -1,4 +1,4 @@
-Django
+Django<3.2
 #git+https://github.com/TheEnbyperor/django-keycloak-auth@8f8b3f8a6e554acb7aff21ab12ec54c6b59b5197
 git+https://github.com/AS207960/python-utils@e3fa7518adefb780263ef44ae017ea20a1175254
 sentry-sdk

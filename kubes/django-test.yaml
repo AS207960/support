@@ -196,6 +196,39 @@ spec:
                 name: support-recaptcha
               prefix: "RECAPTCHA_"
 ---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: support-test-django
+spec:
+  podSelector:
+    matchLabels:
+      app: support-test
+      part: django
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: support-test
+          part: nginx
+    ports:
+    - protocol: TCP
+      port: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: support-test-celery
+spec:
+  podSelector:
+    matchLabels:
+      app: support-test
+      part: celery
+  policyTypes:
+  - Ingress
+---
 apiVersion: v1
 kind: Service
 metadata:

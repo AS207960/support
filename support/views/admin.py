@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from .. import forms, models, tasks
 from django.db.models import OuterRef, Subquery, Q
+from django.core.paginator import Paginator
 from django.contrib.auth.decorators import permission_required, login_required
 
 
@@ -12,8 +13,13 @@ def open_tickets(request):
     tickets = models.Ticket.objects.annotate(newest_message_type=Subquery(newest_message.values('type')[:1]))\
         .filter(newest_message_type=models.TicketMessage.TYPE_CUSTOMER)\
         .filter(state=models.Ticket.STATE_OPEN)
+    tickets = Paginator(tickets, 10)
+
+    page_number = request.GET.get('page')
+    page_obj = tickets.get_page(page_number)
+
     return render(request, "support/admin/tickets.html", {
-        "tickets": tickets,
+        "tickets": page_obj,
         "tickets_type": "open"
     })
 
@@ -26,8 +32,14 @@ def answered_tickets(request):
     tickets = models.Ticket.objects.annotate(newest_message_type=Subquery(newest_message.values('type')[:1]))\
         .filter(~Q(newest_message_type=models.TicketMessage.TYPE_CUSTOMER))\
         .filter(state=models.Ticket.STATE_OPEN)
+
+    tickets = Paginator(tickets, 10)
+
+    page_number = request.GET.get('page')
+    page_obj = tickets.get_page(page_number)
+
     return render(request, "support/admin/tickets.html", {
-        "tickets": tickets,
+        "tickets": page_obj,
         "tickets_type": "answered"
     })
 
@@ -36,8 +48,14 @@ def answered_tickets(request):
 @permission_required('support.view_ticket', raise_exception=True)
 def own_tickets(request):
     tickets = models.Ticket.objects.filter(assigned_to=request.user)
+
+    tickets = Paginator(tickets, 10)
+
+    page_number = request.GET.get('page')
+    page_obj = tickets.get_page(page_number)
+
     return render(request, "support/admin/tickets.html", {
-        "tickets": tickets,
+        "tickets": page_obj,
         "tickets_type": "own"
     })
 
@@ -46,8 +64,14 @@ def own_tickets(request):
 @permission_required('support.view_ticket', raise_exception=True)
 def closed_tickets(request):
     tickets = models.Ticket.objects.filter(state=models.Ticket.STATE_CLOSED)
+
+    tickets = Paginator(tickets, 10)
+
+    page_number = request.GET.get('page')
+    page_obj = tickets.get_page(page_number)
+
     return render(request, "support/admin/tickets.html", {
-        "tickets": tickets,
+        "tickets": page_obj,
         "tickets_type": "closed"
     })
 

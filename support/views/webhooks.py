@@ -1,9 +1,6 @@
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
-from Crypto.Hash import SHA
-from Crypto.Signature import PKCS1_v1_5
-from Crypto.PublicKey import RSA
 from django.conf import settings
 from django.utils import timezone
 from django.core import files
@@ -19,6 +16,10 @@ import io
 import uuid
 import bs4
 import mimetypes
+import cryptography.hazmat.primitives.asymmetric.padding
+import cryptography.hazmat.primitives.serialization
+import cryptography.hazmat.primitives.hashes
+import cryptography.exceptions
 from .. import models, tasks
 
 talon.init()
@@ -39,14 +40,15 @@ def postal(request):
     except binascii.Error:
         return HttpResponse(status=400)
 
-    own_hash = SHA.new()
-    own_hash.update(request.body)
     pubkey_bytes = base64.b64decode(settings.POSTAL_PUBLIC_KEY)
-    pubkey = RSA.importKey(pubkey_bytes)
-    verifier = PKCS1_v1_5.new(pubkey)
-    valid_sig = verifier.verify(own_hash, orig_sig)
-
-    if not valid_sig:
+    pubkey = cryptography.hazmat.primitives.serialization.load_der_public_key(pubkey_bytes)
+    try:
+        pubkey.verify(
+            orig_sig, request.body,
+            cryptography.hazmat.primitives.asymmetric.padding.PKCS1v15(),
+            cryptography.hazmat.primitives.hashes.SHA1()
+        )
+    except cryptography.exceptions.InvalidSignature:
         return HttpResponse(status=401)
 
     try:

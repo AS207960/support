@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from .. import forms, models, tasks
 import requests
+from django.core.paginator import Paginator
 from django.conf import settings
 from django.db.models import Max
 from django.contrib.auth.decorators import login_required
@@ -75,8 +76,13 @@ def tickets(request):
         .filter(customer=request.user.customer) \
         .distinct()
 
+    tickets = Paginator(user_tickets, 10)
+
+    page_number = request.GET.get('page')
+    page_obj = tickets.get_page(page_number)
+
     return render(request, "support/tickets.html", {
-        "tickets": user_tickets
+        "tickets": page_obj
     })
 
 

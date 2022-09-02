@@ -16,5 +16,5 @@ html2text
 lxml
 talon
 celery
-pycrypto
+cryptography
 beautifulsoup4

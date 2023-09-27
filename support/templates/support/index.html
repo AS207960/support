@@ -11,14 +11,14 @@
                 <hr>
                 <div class="row">
                     <div class="col-md-6 my-3 my-md-0 d-flex align-items-center">
-                        <span style="font-size: 60px">&#x1f195;</span>
+                        <span style="font-size: 60px" class="pe-3">&#x1f195;</span>
                         <div class="ml-2">
                             <h2>Open a new ticket</h2>
                             <a href="{% url 'new_ticket' %}" class="btn btn-success">New ticket</a>
                         </div>
                     </div>
                     <div class="col-md-6 my-3 my-md-0 d-flex align-items-center">
-                        <span style="font-size: 60px">&#x1f50d;</span>
+                        <span style="font-size: 60px" class="pe-3">&#x1f50d;</span>
                         <div class="ml-2">
                             <h2>View ticket status</h2>
                             {% if user.is_authenticated %}

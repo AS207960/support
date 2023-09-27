@@ -99,23 +99,38 @@ class Ticket(models.Model):
     due_date = models.DateTimeField(blank=True, null=True)
     subject = models.CharField(max_length=255)
 
+    def first_message(self):
+        return self.messages.order_by('-date').first()
+
     def last_message(self):
-        return self.messages.filter(type=TicketMessage.TYPE_CUSTOMER).order_by('-date').first()
+        return self.messages.order_by('date').first()
 
-    def last_response(self):
-        return self.messages.filter(type=TicketMessage.TYPE_RESPONSE).order_by('-date').first()
+    def last_customer_message(self, exclude_id=None):
+        messages = self.messages.filter(type=TicketMessage.TYPE_CUSTOMER).order_by('-date')
+        if exclude_id:
+            messages = messages.exclude(id=exclude_id)
+        return messages.first()
 
-    def last_message_id(self):
-        last_message = self.messages.filter(email_message_id__isnull=False).order_by('-date').first()
+    def last_response(self, exclude_id=None):
+        messages = self.messages.filter(type=TicketMessage.TYPE_RESPONSE).order_by('-date')
+        if exclude_id:
+            messages = messages.exclude(id=exclude_id)
+        return messages.first()
+
+    def last_message_id(self, exclude_id=None):
+        messages = self.messages.filter(email_message_id__isnull=False).order_by('-date')
+        if exclude_id:
+            messages = messages.exclude(id=exclude_id)
+        last_message = messages.first()
         if last_message:
             return last_message.email_message_id
         return None
 
-    def message_ids(self):
-        return list(
-            self.messages.filter(email_message_id__isnull=False).order_by('-date')
-                .values_list('email_message_id', flat=True)
-        )
+    def message_ids(self, exclude_id=None):
+        messages = self.messages.filter(email_message_id__isnull=False).order_by('-date')
+        if exclude_id:
+            messages = messages.exclude(id=exclude_id)
+        return list(messages.values_list('email_message_id', flat=True))
 
 
 class TicketMessage(models.Model):

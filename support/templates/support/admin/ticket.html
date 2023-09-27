@@ -81,7 +81,7 @@
                         {% if ticket.customer.user %}{{ ticket.customer.user.username }}{% else %}N/A{% endif %}
                         <br>
                         <b>Last message: </b>
-                        {% if ticket.last_message %}{{ ticket.last_message.date }}{% else %}N/A{% endif %}
+                        {% if ticket.last_customer_message %}{{ ticket.last_customer_message.date }}{% else %}N/A{% endif %}
                         <br>
                         <b>Last response: </b>
                         {% if ticket.last_response %}{{ ticket.last_response.date }}{% else %}N/A{% endif %}

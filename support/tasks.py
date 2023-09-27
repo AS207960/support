@@ -30,8 +30,8 @@ def get_feedback_url(description: str, reference: str):
 def make_ticket_email(ticket: models.Ticket, message_id=None) -> EmailMultiAlternatives:
     headers = {}
 
-    last_message_id = ticket.last_message_id()
-    message_ids = ticket.message_ids()
+    last_message_id = ticket.last_message_id(exclude_id=message_id)
+    message_ids = ticket.message_ids(exclude_id=message_id)
 
     if last_message_id:
         headers["In-Reply-To"] = f"{last_message_id}"

@@ -30,6 +30,8 @@
                     <th>Ref</th>
                     <th>Subject</th>
                     <th>From</th>
+                    <th>Last message</th>
+                    <th>Opened</th>
                     <th>Priority</th>
                     <th>Assigned to</th>
                 </tr>
@@ -41,6 +43,8 @@
                             <td>{{ ticket.ref }}</td>
                             <td><a href="{% url 'agent-view-ticket' ticket.id %}">{{ ticket.subject }}</a></td>
                             <td>{{ ticket.customer.full_name }}</td>
+                            <td>{{ ticket.last_message.date.date }}</td>
+                            <td>{{ ticket.first_message.date.date }}</td>
                             <td>
                                 {% if ticket.priority == ticket.PRIORITY_LOW %}
                                     <span class="badge badge-pill bg-secondary">Low</span>

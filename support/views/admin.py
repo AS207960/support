@@ -95,6 +95,7 @@ def view_ticket(request, ticket_id):
                 if ticket_reply_form.cleaned_data['close']:
                     if ticket.state != ticket.STATE_CLOSED:
                         tasks.close_ticket(ticket)
+                        return redirect('agent-open-tickets')
                     else:
                         tasks.reopen_ticket(ticket)
                 ticket_reply_form = forms.TicketReplyForm()
@@ -157,7 +158,7 @@ def close_ticket(request, ticket_id):
         ticket_close_form = forms.TicketCloseForm(request.POST)
         if ticket_close_form.is_valid():
             tasks.close_ticket(ticket, ticket_close_form.cleaned_data['message'])
-            return redirect('agent-view-ticket', ticket.id)
+            return redirect('agent-open-tickets')
     else:
         ticket_close_form = forms.TicketCloseForm()
 

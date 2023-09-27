@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     'django.contrib.postgres',
     'crispy_forms',
+    'crispy_bootstrap4',
     'rest_framework',
     'support'
 ]
@@ -187,3 +188,5 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 100
 }
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

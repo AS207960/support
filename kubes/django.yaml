@@ -45,6 +45,13 @@ data:
   POSTAL_PUBLIC_KEY: >-
     MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQChELn1Fkauo6bduyGeXNca/z27OYNMd85JZMlNiycfFHaAXzgPd53OKVSbyzBuILFPYmzkfaF
     uOCW2qgvFd8cAye6qLsUAqEetiuRTPpAysX3hss1TqIML51kb0ADTmylKi3Hr553qrDy9AEMFmvaKnTH8o0YFozGk0QtlmiLtXQIDAQAB
+  S3_ENDPOINT: "https://s3.as207960.net"
+  S3_REGION: "garage"
+  S3_BUCKET: "support-django"
+  S3_ACCESS_KEY_ID: "GKe2b478cf06ab7638ab97beb4"
+  S3_CUSTOM_DOMAIN: "support-django.content.as207960.net"
+  STATIC_URL: "https://support-django.content.as207960.net/"
+  MEDIA_URL: "https://support-django.content.as207960.net/"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -104,6 +111,8 @@ spec:
             - secretRef:
                 name: support-recaptcha
               prefix: "RECAPTCHA_"
+            - secretRef:
+                name: support-s3
       containers:
         - name: gunicorn
           image: as207960/support-django:(version)
@@ -136,6 +145,8 @@ spec:
             - secretRef:
                 name: support-recaptcha
               prefix: "RECAPTCHA_"
+            - secretRef:
+                name: support-s3
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -195,6 +206,8 @@ spec:
             - secretRef:
                 name: support-recaptcha
               prefix: "RECAPTCHA_"
+            - secretRef:
+                name: support-s3
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -209,10 +222,12 @@ spec:
   - Ingress
   ingress:
   - from:
-    - podSelector:
-        matchLabels:
-          app: support
-          part: nginx
+      - namespaceSelector:
+          matchLabels:
+            app.kubernetes.io/name: ingress-nginx
+        podSelector:
+          matchLabels:
+            app.kubernetes.io/name: ingress-nginx
     ports:
     - protocol: TCP
       port: 8000
@@ -243,3 +258,27 @@ spec:
   ports:
     - port: 8000
       targetPort: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: support-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: "gts"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+spec:
+  tls:
+    - hosts:
+        - support.as207960.net
+      secretName: support-tls
+  rules:
+    - host: support.as207960.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: support-django
+                port:
+                  number: 8000

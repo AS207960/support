@@ -120,7 +120,7 @@ class Ticket(models.Model):
     def last_message_id(self, exclude_id=None):
         messages = self.messages.filter(email_message_id__isnull=False).order_by('-date')
         if exclude_id:
-            messages = messages.exclude(id=exclude_id)
+            messages = messages.exclude(email_message_id=exclude_id)
         last_message = messages.first()
         if last_message:
             return last_message.email_message_id
@@ -129,7 +129,7 @@ class Ticket(models.Model):
     def message_ids(self, exclude_id=None):
         messages = self.messages.filter(email_message_id__isnull=False).order_by('-date')
         if exclude_id:
-            messages = messages.exclude(id=exclude_id)
+            messages = messages.exclude(email_message_id=exclude_id)
         return list(messages.values_list('email_message_id', flat=True))
 
 

@@ -1,27 +1,3 @@
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: support-django-static
-spec:
-  storageClassName: standard
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 1Gi
----
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: support-django-media
-spec:
-  storageClassName: standard
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 1Gi
----
 kind: ConfigMap
 apiVersion: v1
 metadata:
@@ -74,23 +50,11 @@ spec:
         app: support
         part: django
     spec:
-      volumes:
-        - name: static
-          persistentVolumeClaim:
-            claimName: support-django-static
-        - name: media
-          persistentVolumeClaim:
-            claimName: support-django-media
       initContainers:
         - name: django
           image: as207960/support-django:(version)
           imagePullPolicy: Always
           command: ["sh", "-c", "python3 manage.py collectstatic --noinput && python3 manage.py migrate && python3 manage.py sync-keycloak"]
-          volumeMounts:
-            - mountPath: "/app/static/"
-              name: static
-            - mountPath: "/app/media/"
-              name: media
           envFrom:
             - configMapRef:
                 name: support-django-conf
@@ -120,11 +84,6 @@ spec:
           command: ["gunicorn", "-w", "8", "-b", "[::]:8000", "--forwarded-allow-ips", "*", "--access-logfile", "-", "--timeout=90", "as207960_support.wsgi:application"]
           ports:
             - containerPort: 8000
-          volumeMounts:
-            - mountPath: "/app/static/"
-              name: static
-            - mountPath: "/app/media/"
-              name: media
           envFrom:
             - configMapRef:
                 name: support-django-conf
@@ -169,23 +128,11 @@ spec:
         app: support
         part: celery
     spec:
-      volumes:
-        - name: static
-          persistentVolumeClaim:
-            claimName: support-django-static
-        - name: media
-          persistentVolumeClaim:
-            claimName: support-django-media
       containers:
         - name: celery
           image: as207960/support-django:(version)
           imagePullPolicy: Always
           command: ["celery", "-A", "as207960_support", "worker", "--loglevel=INFO", "-c", "32"]
-          volumeMounts:
-            - mountPath: "/app/static/"
-              name: static
-            - mountPath: "/app/media/"
-              name: media
           envFrom:
             - configMapRef:
                 name: support-django-conf

@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from .. import forms, models, tasks
 import requests
+import stripe.identity
 from django.core.paginator import Paginator
 from django.conf import settings
 from django.db.models import Max
@@ -134,3 +135,11 @@ def verify_ticket_alt(request, ticket_id):
     return render(request, "support/verify_ticket.html", {
         "ticket": user_ticket
     })
+
+
+def do_kyc(request, session_id):
+    verification_session = get_object_or_404(models.VerificationSession, id=session_id)
+
+    stripe_verification_session = stripe.identity.VerificationSession.retrieve(verification_session.stripe_session)
+
+    return redirect(stripe_verification_session.url)

@@ -8,6 +8,8 @@ urlpatterns = [
     path('tickets/<str:ticket_id>/', views.views.ticket, name='view-ticket'),
     path('tickets/<str:ticket_id>/verify/', views.views.verify_ticket_alt, name='verify-ticket-alt'),
     path('verify_ticket/<str:verification_token>/', views.views.verify_ticket, name='verify_ticket'),
+    path('kyc/<str:session_id>/', views.views.do_kyc, name='do-kyc'),
+
     path('agent/tickets/', views.admin.open_tickets, name='agent-open-tickets'),
     path('agent/tickets/closed/', views.admin.closed_tickets, name='agent-closed-tickets'),
     path('agent/tickets/answered/', views.admin.answered_tickets, name='agent-answered-tickets'),
@@ -17,5 +19,9 @@ urlpatterns = [
     path('agent/tickets/<str:ticket_id>/claim/', views.admin.claim_ticket, name='agent-claim-ticket'),
     path('agent/tickets/<str:ticket_id>/close/', views.admin.close_ticket, name='agent-close-ticket'),
     path('agent/tickets/<str:ticket_id>/reopen/', views.admin.reopen_ticket, name='agent-reopen-ticket'),
-    path('webhook/postal/', views.webhooks.postal),
+    path('agent/tickets/<str:ticket_id>/delete/', views.admin.delete_ticket, name='agent-delete-ticket'),
+    path('agent/tickets/<str:ticket_id>/assign/', views.admin.assign_ticket, name='agent-assign-ticket'),
+
+    path('webhook/postal/', views.webhooks.postal_webhook),
+    path('webhook/stripe/', views.webhooks.stripe_webhook),
 ]

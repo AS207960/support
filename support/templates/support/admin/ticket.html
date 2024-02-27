@@ -12,11 +12,13 @@
                             <a href="{% url 'agent-claim-ticket' ticket.id %}" class="btn btn-success">Claim</a>
                         {% endif %}
                         <a href="{% url 'agent-edit-ticket' ticket.id %}" class="btn btn-primary">Edit</a>
+                        <a href="{% url 'agent-assign-ticket' ticket.id %}" class="btn btn-secondary">Assign</a>
                         {% if ticket.state == "O" %}
                             <a href="{% url 'agent-close-ticket' ticket.id %}" class="btn btn-danger">Close</a>
                         {% elif ticket.state == "C" %}
                             <a href="{% url 'agent-reopen-ticket' ticket.id %}" class="btn btn-info">Reopen</a>
                         {% endif %}
+                        <a href="{% url 'agent-delete-ticket' ticket.id %}" class="btn btn-danger">Delete</a>
                     </div>
                 {% endif %}
                 <div class="row mt-2">
@@ -93,7 +95,7 @@
     <div class="container mt-5">
         <h3>Ticket thread</h3>
         {% for message in ticket.messages.all %}
-            <div class="card my-3{% if message.type == "C" %} border-primary{% elif message.type == "R" %} border-success{% elif message.type == "N" %} border-secondary{% elif message.type == "S" %} border-warning{% endif %}">
+            <div class="card my-3{% if message.type == "C" %} border-primary{% elif message.type == "R" %} border-success{% elif message.type == "N" %} border-secondary{% elif message.type == "S" or message.type == "E" %} border-warning{% endif %}">
                 <div class="card-header">
                     {{ message.date }}
                     - <b>
@@ -103,7 +105,7 @@
                             Response
                         {% elif message.type == "N" %}
                             Internal note
-                        {% elif message.type == "S" %}
+                        {% elif message.type == "S" or message.type == "E" %}
                             System note
                         {% else %}
                             {{ message.get_type_display }}
@@ -135,8 +137,8 @@
                        aria-controls="note" aria-selected="false">Post note</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" id="assign-tab" data-toggle="tab" href="#assign" role="tab"
-                       aria-controls="assign" aria-selected="false">Assign</a>
+                    <a class="nav-link" id="kyc-tab" data-toggle="tab" href="#assign" role="tab"
+                       aria-controls="assign" aria-selected="false">Request identity verification</a>
                 </li>
             </ul>
             <div class="tab-content mt-3">
@@ -146,7 +148,17 @@
                 <div class="tab-pane fade" id="note" role="tabpanel" aria-labelledby="note-tab">
                     {% crispy ticket_note_form ticket_note_form.helper %}
                 </div>
-                <div class="tab-pane fade" id="assign" role="tabpanel" aria-labelledby="assign-tab">...</div>
+                <div class="tab-pane fade" id="assign" role="tabpanel" aria-labelledby="kyc-tab">
+                    <p>
+                        The user will be sent a link to upload their identity documents.
+                    </p>
+                    <form action="" method="post">
+                        {% csrf_token %}
+                        <div class="btn-group">
+                            <button type="submit" name="type" value="kyc" class="btn btn-primary">Send request</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

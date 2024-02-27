@@ -4,13 +4,13 @@
     <section class="stripe">
         <div class="container my-5">
             <div class="bg-light p-3 rounded my-4">
-                <h1 class="display-4">Claim ticket #{{ ticket.ref }}</h1>
+                <h1 class="display-4">Delete ticket #{{ ticket.ref }}</h1>
                 <h2>{{ ticket.subject }}</h2>
                 <form action="" method="post">
                     {% csrf_token %}
                     <div class="btn-group mt-3">
-                        <a href="{% url 'agent-view-ticket' ticket.id %}" class="btn btn-danger">Cancel</a>
-                        <button type="submit" name="claim" value="true" class="btn btn-success">Claim</button>
+                        <a href="{% url 'agent-view-ticket' ticket.id %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" name="delete" value="true" class="btn btn-danger">Delete</button>
                     </div>
                 </form>
             </div>

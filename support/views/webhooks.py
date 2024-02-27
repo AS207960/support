@@ -3,7 +3,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
 from django.conf import settings
 from django.utils import timezone
-from django.core import files
 import base64
 import logging
 import binascii
@@ -20,14 +19,17 @@ import cryptography.hazmat.primitives.asymmetric.padding
 import cryptography.hazmat.primitives.serialization
 import cryptography.hazmat.primitives.hashes
 import cryptography.exceptions
-from .. import models, tasks
+import stripe
+import stripe.identity
+from .. import models, tasks, middleware
 
 talon.init()
 logger = logging.getLogger(__name__)
 
 
 @csrf_exempt
-def postal(request):
+@middleware.try_login_exempt
+def postal_webhook(request):
     if request.method != "POST":
         return HttpResponse(status=405)
 
@@ -69,17 +71,17 @@ def postal(request):
         existing_message = models.TicketMessage.objects.filter(email_message_id=message['message-id']).first()
         if existing_message:
             logging.warning(f"Duplicate message, throwing away: {existing_message.email_message_id}")
-            return HttpResponse(status=200)
+            return HttpResponse(status=204)
     else:
         logger.warning("No message ID, throwing away")
-        return HttpResponse(status=200)
+        return HttpResponse(status=204)
 
     if 'from' not in message:
         logging.warning("No from, throwing away")
-        return HttpResponse(status=200)
+        return HttpResponse(status=204)
     if 'date' not in message:
         logging.warning("No date, throwing away")
-        return HttpResponse(status=200)
+        return HttpResponse(status=204)
 
     message_date = message['date']
     message_date = (
@@ -181,4 +183,93 @@ def postal(request):
         message_attachment.file.name = attachment["disk_file_name"]
         message_attachment.save()
 
-    return HttpResponse(status=200)
+    return HttpResponse(status=204)
+
+
+@csrf_exempt
+@middleware.try_login_exempt
+def stripe_webhook(request):
+    try:
+        event = stripe.Webhook.construct_event(
+            request.body,
+            request.headers.get("Stripe-Signature"),
+            settings.STRIPE_ENDPOINT_SECRET
+        )
+    except ValueError as e:
+        raise e
+    except stripe.error.SignatureVerificationError as e:
+        raise e
+
+    if event['type'] in (
+            'identity.verification_session.requires_input',
+            'identity.verification_session.verified'
+    ):
+        stripe_verification_session = event['data']['object']
+        verification_successful = event['type'] == 'identity.verification_session.verified'
+    else:
+        return HttpResponse(status=400)
+
+    verification_session = models.VerificationSession.objects.get(stripe_session=stripe_verification_session['id'])
+
+    if verification_successful:
+        stripe_verification_session = stripe.identity.VerificationSession.retrieve(
+            stripe_verification_session['id'],
+            expand=['verified_outputs']
+        )
+
+        message = "<p>Verification successful</p><p>"
+
+        if stripe_verification_session['verified_outputs'].get("first_name"):
+            message += f"First name: {stripe_verification_session['verified_outputs']['first_name']}<br>"
+        if stripe_verification_session['verified_outputs'].get("last_name"):
+            message += f"Last name: {stripe_verification_session['verified_outputs']['last_name']}<br>"
+        if stripe_verification_session['verified_outputs'].get("address"):
+            address = []
+            if stripe_verification_session['verified_outputs']['address'].get("line1"):
+                address.append(stripe_verification_session['verified_outputs']['address']['line1'])
+            if stripe_verification_session['verified_outputs']['address'].get("line2"):
+                address.append(stripe_verification_session['verified_outputs']['address']['line2'])
+            if stripe_verification_session['verified_outputs']['address'].get("city"):
+                address.append(stripe_verification_session['verified_outputs']['address']['city'])
+            if stripe_verification_session['verified_outputs']['address'].get("state"):
+                address.append(stripe_verification_session['verified_outputs']['address']['state'])
+            if stripe_verification_session['verified_outputs']['address'].get("postal_code"):
+                address.append(stripe_verification_session['verified_outputs']['address']['postal_code'])
+            if stripe_verification_session['verified_outputs']['address'].get("country"):
+                address.append(stripe_verification_session['verified_outputs']['address']['country'])
+            message += f"Address: {', '.join(address)}<br>"
+
+        message += "</p>"
+
+        ticket_message = models.TicketMessage(
+            ticket=verification_session.ticket,
+            type=models.TicketMessage.TYPE_SYSTEM_RESPONSE,
+            message=message,
+            date=timezone.now()
+        )
+        ticket_message.save()
+
+        tasks.send_notification.delay(
+            verification_session.ticket.id,
+            f"Verification successful",
+            f"Identity verification successful on ticket #{verification_session.ticket.ref}",
+            int(ticket_message.date.timestamp())
+        )
+
+    else:
+        ticket_message = models.TicketMessage(
+            ticket=verification_session.ticket,
+            type=models.TicketMessage.TYPE_SYSTEM_RESPONSE,
+            message="<p>Verification failed</p>",
+            date=timezone.now()
+        )
+        ticket_message.save()
+
+        tasks.send_notification.delay(
+            verification_session.ticket.id,
+            f"Verification failed",
+            f"Identity verification failed on ticket #{verification_session.ticket.ref}",
+            int(ticket_message.date.timestamp())
+        )
+
+    return HttpResponse(status=204)

@@ -14,6 +14,7 @@ import os
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 import logging
+import stripe
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -76,7 +77,7 @@ ROOT_URLCONF = 'as207960_support.urls'
 AUTHENTICATION_BACKENDS = ["django_keycloak_auth.auth.KeycloakAuthorization"]
 
 LOGIN_URL = "oidc_login"
-LOGOUT_REDIRECT_URL = "oidc_login"
+LOGOUT_REDIRECT_URL = "index"
 
 TEMPLATES = [
     {
@@ -231,3 +232,8 @@ REST_FRAMEWORK = {
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+stripe.api_key = os.getenv("STRIPE_SERVER_KEY")
+STRIPE_ENDPOINT_SECRET = os.getenv("STRIPE_ENDPOINT_SECRET")
+
+PUSHOVER_APP_TOKEN = os.getenv("PUSHOVER_APP_TOKEN")

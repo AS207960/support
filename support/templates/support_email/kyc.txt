@@ -1,0 +1,7 @@
+{% extends "support_email/email_base.txt" %}
+{% block content %}
+Verification of your identity has been requested on ticket #{{ ticket_ref }}.
+Please follow the link below to complete the verification process.
+
+{{ kyc_url }}
+{% endblock content %}

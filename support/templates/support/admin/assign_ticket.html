@@ -1,0 +1,14 @@
+{% extends 'support/base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+    <section class="stripe">
+        <div class="container my-5">
+            <div class="bg-light p-3 rounded my-4">
+                <h1 class="display-4">Assign ticket #{{ ticket.ref }}</h1>
+                <h2>{{ ticket.subject }}</h2>
+                <hr>
+                {% crispy ticket_assign_form ticket_assign_form.helper %}
+            </div>
+        </div>
+    </section>
+{% endblock %}

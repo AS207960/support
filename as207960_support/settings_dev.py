@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 import os
 import logging
 import json
+import stripe
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -59,6 +60,7 @@ MIDDLEWARE = [
     "django_keycloak_auth.middleware.OIDCMiddleware",
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'support.middleware.TryLogin',
 ]
 
 ROOT_URLCONF = 'as207960_support.urls'
@@ -66,7 +68,7 @@ ROOT_URLCONF = 'as207960_support.urls'
 AUTHENTICATION_BACKENDS = ["django_keycloak_auth.auth.KeycloakAuthorization"]
 
 LOGIN_URL = "oidc_login"
-LOGOUT_REDIRECT_URL = "oidc_login"
+LOGOUT_REDIRECT_URL = "index"
 
 TEMPLATES = [
     {
@@ -152,6 +154,15 @@ with open(os.path.join(BASE_DIR, "secrets/keycloak.json")) as f:
     keycloak_conf = json.load(f)
 with open(os.path.join(BASE_DIR, "secrets/recaptcha.json")) as f:
     recaptcha_conf = json.load(f)
+with open(os.path.join(BASE_DIR, "secrets/stripe.json")) as f:
+    stripe_conf = json.load(f)
+with open(os.path.join(BASE_DIR, "secrets/pushover.json")) as f:
+    pushover_conf = json.load(f)
+
+stripe.api_key = stripe_conf["server_key"]
+STRIPE_ENDPOINT_SECRET = stripe_conf["endpoint_secret"]
+
+PUSHOVER_APP_TOKEN = pushover_conf["app_token"]
 
 KEYCLOAK_SERVER_URL = keycloak_conf["server_url"]
 KEYCLOAK_REALM = keycloak_conf["realm"]

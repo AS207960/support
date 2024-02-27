@@ -8,6 +8,8 @@ from django.shortcuts import reverse
 from celery import shared_task
 import requests
 import secrets
+import typing
+import stripe.identity
 import django_keycloak_auth.clients
 
 
@@ -100,6 +102,13 @@ def open_ticket(
 
     send_open_ticket_email.delay(ticket.id, verified)
 
+    send_notification.delay(
+        ticket.id,
+        f"New ticket from {customer.full_name}",
+        f"Ticket ref: #{ticket.ref}\nSubject: {ticket.subject}\nPriority: {ticket.get_priority_display()}",
+        int(ticket_message.date.timestamp())
+    )
+
     return ticket_message
 
 
@@ -112,6 +121,13 @@ def post_message(ticket: models.Ticket, message: str, email_id: str = None, date
         email_message_id=email_id
     )
     ticket_message.save()
+
+    send_notification.delay(
+        ticket.id,
+        f"New message from {ticket.customer.full_name}",
+        f"Ticket ref: #{ticket.ref}\nSubject: {ticket.subject}",
+        int(ticket_message.date.timestamp())
+    )
 
     return ticket_message
 
@@ -198,7 +214,7 @@ def send_close_ticket_email(ticket_id):
     email.send()
 
 
-def close_ticket(ticket: models.Ticket, message: str = ""):
+def close_ticket(ticket: models.Ticket, message: str = "", silent: bool = False):
     ticket.state = ticket.STATE_CLOSED
     ticket.save()
 
@@ -210,7 +226,8 @@ def close_ticket(ticket: models.Ticket, message: str = ""):
     )
     ticket_message.save()
 
-    send_close_ticket_email.delay(ticket.id)
+    if not silent:
+        send_close_ticket_email.delay(ticket.id)
 
 
 def reopen_ticket(ticket: models.Ticket, message: str = ""):
@@ -224,3 +241,100 @@ def reopen_ticket(ticket: models.Ticket, message: str = ""):
         date=timezone.now()
     )
     ticket_message.save()
+
+
+@shared_task(
+    autoretry_for=(Exception,), retry_backoff=1, retry_backoff_max=60, max_retries=None, default_retry_delay=3
+)
+def send_kyc_email(verification_session_id):
+    verification_session = models.VerificationSession.objects.get(id=verification_session_id)
+
+    kyc_url = settings.EXTERNAL_URL_BASE + reverse('do-kyc', args=(verification_session.id,))
+
+    context = {
+        "name": verification_session.ticket.customer.full_name,
+        "ticket_ref": verification_session.ticket.ref,
+        "kyc_url": kyc_url
+    }
+    html_content = render_to_string("support_email/kyc.html", context)
+    txt_content = render_to_string("support_email/kyc.txt", context)
+
+    email = make_ticket_email(verification_session.ticket)
+    email.subject = f'Identity verification requested - {verification_session.ticket.subject}'
+    email.body = txt_content
+    email.attach_alternative(html_content, "text/html")
+    email.send()
+
+
+def request_kyc(ticket: models.Ticket):
+    verification_session = stripe.identity.VerificationSession.create(
+        type='document',
+        options={
+            'document': {
+                'require_live_capture': True,
+                'require_matching_selfie': True,
+            },
+        },
+        client_reference_id=ticket.id,
+        metadata={
+            "user_id": ticket.customer.user.username if ticket.customer.user else None,
+        },
+    )
+
+    verification_session_obj = models.VerificationSession(
+        ticket=ticket,
+        stripe_session=verification_session.id
+    )
+    verification_session_obj.save()
+
+    ticket_message = models.TicketMessage(
+        ticket=ticket,
+        type=models.TicketMessage.TYPE_SYSTEM,
+        message=f"<p>Request for identity verification sent.<br/>Session ID: <code>{verification_session.id}</code></p>",
+        date=timezone.now()
+    )
+    ticket_message.save()
+
+    send_kyc_email.delay(verification_session_obj.id)
+
+
+@shared_task(
+    autoretry_for=(Exception,), retry_backoff=1, retry_backoff_max=60, max_retries=None, default_retry_delay=3
+)
+def send_notification(ticket_id, title: str, message: str, timestamp: int):
+    ticket = models.Ticket.objects.get(id=ticket_id)
+
+    if ticket.assigned_to:
+        agent = ticket.assigned_to.customer
+        if agent.pushover_user_key:
+            send_single_notification.delay(agent.id, title, message, timestamp, ticket.id)
+    else:
+        for agent in models.Customer.objects.filter(
+                is_agent=True, pushover_user_key__isnull=False
+        ):
+            send_single_notification.delay(agent.id, title, message, timestamp, ticket.id)
+
+
+@shared_task(
+    autoretry_for=(Exception,), retry_backoff=1, retry_backoff_max=60, max_retries=None, default_retry_delay=3
+)
+def send_single_notification(customer_id, title: str, message: str, timestamp: int, ticket_id: typing.Optional[str]):
+    customer = models.Customer.objects.get(id=customer_id)
+
+    data = {
+        "token": settings.PUSHOVER_APP_TOKEN,
+        "user": customer.pushover_user_key,
+        "title": title,
+        "message": message,
+        "timestamp": timestamp
+    }
+
+    if ticket_id:
+        ticket = models.Ticket.objects.get(id=ticket_id)
+
+        data["url"] = settings.EXTERNAL_URL_BASE + reverse('agent-view-ticket', args=(ticket.id,))
+        data["url_title"] = f"View ticket #{ticket.ref}"
+
+    if customer.pushover_user_key:
+        r = requests.post("https://api.pushover.net/1/messages.json", data=data)
+        r.raise_for_status()

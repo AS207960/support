@@ -55,7 +55,7 @@ spec:
           image: as207960/support-django:(version)
           imagePullPolicy: Always
           command: ["sh", "-c", "python3 manage.py collectstatic --noinput && python3 manage.py migrate && python3 manage.py sync-keycloak"]
-          envFrom:
+          envFrom: &envFrom
             - configMapRef:
                 name: support-django-conf
             - secretRef:
@@ -77,6 +77,12 @@ spec:
               prefix: "RECAPTCHA_"
             - secretRef:
                 name: support-s3
+            - secretRef:
+                name: support-stripe
+              prefix: "STRIPE_"
+            - secretRef:
+                name: support-pushover
+              prefix: "PUSHOVER_"
       containers:
         - name: gunicorn
           image: as207960/support-django:(version)
@@ -84,28 +90,7 @@ spec:
           command: ["gunicorn", "-w", "8", "-b", "[::]:8000", "--forwarded-allow-ips", "*", "--access-logfile", "-", "--timeout=90", "as207960_support.wsgi:application"]
           ports:
             - containerPort: 8000
-          envFrom:
-            - configMapRef:
-                name: support-django-conf
-            - secretRef:
-                name: support-db-creds
-              prefix: "DB_"
-            - secretRef:
-                name: support-django-secret
-            - secretRef:
-                name: support-keycloak
-              prefix: "KEYCLOAK_"
-            - secretRef:
-                name: support-email
-              prefix: "EMAIL_"
-            - secretRef:
-                name: support-celery
-              prefix: "CELERY_"
-            - secretRef:
-                name: support-recaptcha
-              prefix: "RECAPTCHA_"
-            - secretRef:
-                name: support-s3
+          envFrom: *envFrom
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -155,6 +140,12 @@ spec:
               prefix: "RECAPTCHA_"
             - secretRef:
                 name: support-s3
+            - secretRef:
+                name: support-stripe
+              prefix: "STRIPE_"
+            - secretRef:
+                name: support-pushover
+              prefix: "PUSHOVER_"
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

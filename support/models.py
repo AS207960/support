@@ -1,21 +1,27 @@
 import secrets
-import base64
+import django_keycloak_auth.models
 import as207960_utils.models
 import django.core.exceptions
 from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_save
+from django.contrib.auth.signals import user_logged_in
 from django.dispatch import receiver
 from phonenumber_field.modelfields import PhoneNumberField
 import lxml.html.clean
 
 
 class Customer(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name="customer")
+    is_agent = models.BooleanField(blank=True, null=False, default=False)
     full_name = models.CharField(max_length=255)
     email = models.EmailField(db_index=True)
     phone = PhoneNumberField(blank=True, null=True)
     phone_ext = models.CharField(max_length=64, blank=True, null=True, verbose_name="Phone extension")
+    pushover_user_key = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.full_name} - {self.email}"
 
     def save(self, *args, **kwargs):
         if self.user:
@@ -34,7 +40,7 @@ class Customer(models.Model):
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
-def create_user_profile(sender, instance, created, **kwargs):
+def create_user_profile(instance, **_kwargs):
     try:
         instance.customer.save()
     except django.core.exceptions.ObjectDoesNotExist:
@@ -44,6 +50,10 @@ def create_user_profile(sender, instance, created, **kwargs):
             customer.save()
         else:
             Customer.objects.create(user=instance)
+
+@receiver(user_logged_in)
+def update_permissions(request, **_kwargs):
+    request.user.customer.is_agent = "support.view_ticket" in request.user.get_all_permissions()
 
 
 def make_ticket_ref():
@@ -98,12 +108,13 @@ class Ticket(models.Model):
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True)
     due_date = models.DateTimeField(blank=True, null=True)
     subject = models.CharField(max_length=255)
+    deleted = models.BooleanField(blank=True, null=False, default=False)
 
     def first_message(self):
-        return self.messages.order_by('-date').first()
+        return self.messages.order_by('date').first()
 
     def last_message(self):
-        return self.messages.order_by('date').first()
+        return self.messages.order_by('-date').first()
 
     def last_customer_message(self, exclude_id=None):
         messages = self.messages.filter(type=TicketMessage.TYPE_CUSTOMER).order_by('-date')
@@ -138,11 +149,13 @@ class TicketMessage(models.Model):
     TYPE_RESPONSE = "R"
     TYPE_NOTE = "N"
     TYPE_SYSTEM = "S"
+    TYPE_SYSTEM_RESPONSE = "E"
     TYPES = (
         (TYPE_CUSTOMER, "Customer"),
         (TYPE_RESPONSE, "Response"),
         (TYPE_NOTE, "Note"),
-        (TYPE_SYSTEM, "System")
+        (TYPE_SYSTEM, "System"),
+        (TYPE_SYSTEM_RESPONSE, "System Response"),
     )
 
     id = as207960_utils.models.TypedUUIDField("support_ticketmessage", primary_key=True)
@@ -168,3 +181,9 @@ class TicketMessageAttachment(models.Model):
     message = models.ForeignKey(TicketMessage, on_delete=models.CASCADE)
     file_name = models.TextField(blank=True, null=True)
     file = models.FileField()
+
+
+class VerificationSession(models.Model):
+    id = as207960_utils.models.TypedUUIDField("support_verificationsession", primary_key=True)
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE)
+    stripe_session = models.CharField(max_length=255)

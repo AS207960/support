@@ -1,3 +1,4 @@
+import django.contrib.auth.models
 from django import forms
 import crispy_forms.helper
 import crispy_forms.layout
@@ -172,6 +173,7 @@ class TicketCloseForm(forms.Form):
             "rows": 5
         }), label="Note", required=True
     )
+    silent = forms.BooleanField(label="Close silently", required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -181,11 +183,12 @@ class TicketCloseForm(forms.Form):
         self.helper.field_class = 'my-1'
         self.helper.layout = crispy_forms.layout.Layout(
             'message',
+            'silent',
             crispy_forms.layout.ButtonHolder(
                 crispy_forms.layout.HTML(
                     '<a href="{% url "agent-view-ticket" ticket.id %}" class="btn btn-primary">Cancel</a>'),
                 crispy_forms.layout.Submit('submit', 'Close ticket', css_class='btn-danger'),
-                css_class='btn-group'
+                css_class='btn-group mt-3'
             )
         )
 
@@ -213,7 +216,7 @@ class TicketReopenForm(forms.Form):
                 crispy_forms.layout.HTML(
                     '<a href="{% url "agent-view-ticket" ticket.id %}" class="btn btn-primary">Cancel</a>'),
                 crispy_forms.layout.Submit('submit', 'Reopen ticket', css_class='btn-success'),
-                css_class='btn-group'
+                css_class='btn-group mt-3'
             )
         )
 
@@ -221,3 +224,32 @@ class TicketReopenForm(forms.Form):
         data = self.cleaned_data['message']
         markdown = markdown2.Markdown()
         return markdown.convert(data)
+
+
+class UserModelChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return f"{obj.get_full_name()} - {obj.email}"
+
+class TicketAssignForm(forms.Form):
+    assign_to = UserModelChoiceField(
+        queryset=django.contrib.auth.models.User.objects.filter(
+            customer__is_agent=True
+        ), label="Assign to", required=True
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.helper = crispy_forms.helper.FormHelper()
+        self.helper.use_custom_control = False
+        self.helper.field_class = 'my-1'
+        self.helper.layout = crispy_forms.layout.Layout(
+            'assign_to',
+            crispy_forms.layout.ButtonHolder(
+                crispy_forms.layout.HTML(
+                    '<a href="{% url "agent-view-ticket" ticket.id %}" class="btn btn-primary">Cancel</a>'),
+                crispy_forms.layout.Submit('submit', 'Assign ticket', css_class='btn-success'),
+                css_class='btn-group mt-3'
+            )
+        )
+

@@ -8,11 +8,14 @@ from django.contrib.auth.decorators import permission_required, login_required
 @login_required
 @permission_required('support.view_ticket', raise_exception=True)
 def open_tickets(request):
-    newest_message = models.TicketMessage.objects.filter(ticket=OuterRef('pk'))\
+    newest_message = models.TicketMessage.objects.filter(ticket=OuterRef('pk')) \
         .order_by('-date')
     tickets = models.Ticket.objects.annotate(newest_message_type=Subquery(newest_message.values('type')[:1]))\
-        .filter(newest_message_type=models.TicketMessage.TYPE_CUSTOMER)\
-        .filter(state=models.Ticket.STATE_OPEN)
+        .filter(
+            Q(newest_message_type=models.TicketMessage.TYPE_CUSTOMER) |
+            Q(newest_message_type=models.TicketMessage.TYPE_SYSTEM_RESPONSE)
+        ).filter(state=models.Ticket.STATE_OPEN) \
+        .filter(deleted=False)
     tickets = Paginator(tickets, 10)
 
     page_number = request.GET.get('page')
@@ -30,8 +33,11 @@ def answered_tickets(request):
     newest_message = models.TicketMessage.objects.filter(ticket=OuterRef('pk'))\
         .order_by('-date')
     tickets = models.Ticket.objects.annotate(newest_message_type=Subquery(newest_message.values('type')[:1]))\
-        .filter(~Q(newest_message_type=models.TicketMessage.TYPE_CUSTOMER))\
-        .filter(state=models.Ticket.STATE_OPEN)
+        .filter(~Q(
+            Q(newest_message_type=models.TicketMessage.TYPE_CUSTOMER) |
+            Q(newest_message_type=models.TicketMessage.TYPE_SYSTEM_RESPONSE)
+        )).filter(state=models.Ticket.STATE_OPEN) \
+        .filter(deleted=False)
 
     tickets = Paginator(tickets, 10)
 
@@ -47,7 +53,8 @@ def answered_tickets(request):
 @login_required
 @permission_required('support.view_ticket', raise_exception=True)
 def own_tickets(request):
-    tickets = models.Ticket.objects.filter(assigned_to=request.user)
+    tickets = models.Ticket.objects.filter(assigned_to=request.user) \
+        .filter(deleted=False)
 
     tickets = Paginator(tickets, 10)
 
@@ -63,7 +70,8 @@ def own_tickets(request):
 @login_required
 @permission_required('support.view_ticket', raise_exception=True)
 def closed_tickets(request):
-    tickets = models.Ticket.objects.filter(state=models.Ticket.STATE_CLOSED)
+    tickets = models.Ticket.objects.filter(state=models.Ticket.STATE_CLOSED) \
+        .filter(deleted=False)
 
     tickets = Paginator(tickets, 10)
 
@@ -104,6 +112,8 @@ def view_ticket(request, ticket_id):
             if ticket_note_form.is_valid():
                 tasks.post_note(ticket, ticket_note_form.cleaned_data['message'])
                 ticket_note_form = forms.TicketNoteForm()
+        elif request.POST.get("type") == "kyc":
+            tasks.request_kyc(ticket)
 
     return render(request, "support/admin/ticket.html", {
         "ticket": ticket,
@@ -157,7 +167,9 @@ def close_ticket(request, ticket_id):
     if request.method == "POST":
         ticket_close_form = forms.TicketCloseForm(request.POST)
         if ticket_close_form.is_valid():
-            tasks.close_ticket(ticket, ticket_close_form.cleaned_data['message'])
+            tasks.close_ticket(
+                ticket, ticket_close_form.cleaned_data['message'], ticket_close_form.cleaned_data.get('silent', False)
+            )
             return redirect('agent-open-tickets')
     else:
         ticket_close_form = forms.TicketCloseForm()
@@ -187,4 +199,38 @@ def reopen_ticket(request, ticket_id):
     return render(request, "support/admin/reopen_ticket.html", {
         "ticket": ticket,
         "ticket_reopen_form": ticket_reopen_form
+    })
+
+
+@login_required
+@permission_required('support.change_ticket', raise_exception=True)
+def delete_ticket(request, ticket_id):
+    ticket = get_object_or_404(models.Ticket, id=ticket_id)
+
+    if request.method == "POST":
+        if request.POST.get("delete") == "true":
+            ticket.deleted = True
+            ticket.save()
+            return redirect('agent-open-tickets')
+
+    return render(request, "support/admin/delete_ticket.html", {
+        "ticket": ticket,
+    })
+
+
+@login_required
+@permission_required('support.change_ticket', raise_exception=True)
+def assign_ticket(request, ticket_id):
+    ticket = get_object_or_404(models.Ticket, id=ticket_id)
+
+    if request.method == "POST":
+        ticket_assign_form = forms.TicketAssignForm(request.POST)
+        if ticket_assign_form.is_valid():
+            return redirect('agent-view-ticket', ticket.id)
+    else:
+        ticket_assign_form = forms.TicketAssignForm()
+
+    return render(request, "support/admin/assign_ticket.html", {
+        "ticket": ticket,
+        "ticket_assign_form": ticket_assign_form
     })

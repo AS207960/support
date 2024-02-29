@@ -209,7 +209,10 @@ def stripe_webhook(request):
     else:
         return HttpResponse(status=400)
 
-    verification_session = models.VerificationSession.objects.get(stripe_session=stripe_verification_session['id'])
+    verification_session = models.VerificationSession.objects\
+        .filter(stripe_session=stripe_verification_session['id']).first()
+    if not verification_session:
+        return HttpResponse(status=204)
 
     if verification_successful:
         stripe_verification_session = stripe.identity.VerificationSession.retrieve(

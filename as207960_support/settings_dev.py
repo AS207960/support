@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     'django.contrib.postgres',
     'crispy_forms',
-    'crispy_bootstrap4',
+    'crispy_bootstrap5',
     'rest_framework',
     'support'
 ]
@@ -142,7 +142,8 @@ EXTERNAL_URL_BASE = "http://localhost:8006"
 MEDIA_URL = f"{EXTERNAL_URL_BASE}/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
-CRISPY_TEMPLATE_PACK = "bootstrap4"
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
 CRISPY_FAIL_SILENTLY = not DEBUG
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

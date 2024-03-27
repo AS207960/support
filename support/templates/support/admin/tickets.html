@@ -5,6 +5,9 @@
         <div class="container my-5">
             <div class="bg-light p-3 rounded my-4">
                 <h1 class="display-4">Tickets</h1>
+                <div class="btn-group mb-3">
+                    <a href="{% url 'agent-create-ticket' %}" class="btn btn-primary btn-lg">Create ticket</a>
+                </div>
                 <ul class="nav nav-pills">
                     <li class="nav-item">
                         <a class="nav-link{% if tickets_type == "open" %} active{% endif %}" href="{% url 'agent-open-tickets' %}">Open</a>

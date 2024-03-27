@@ -52,7 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.postgres',
     'phonenumber_field',
     'crispy_forms',
-    'crispy_bootstrap4',
+    'crispy_bootstrap5',
     'rest_framework',
     'support'
 ]
@@ -180,7 +180,8 @@ OIDC_CLIENT_SECRET = os.getenv("KEYCLOAK_CLIENT_SECRET")
 OIDC_SCOPES = os.getenv("KEYCLOAK_SCOPES")
 
 PHONENUMBER_DEFAULT_REGION = "GB"
-CRISPY_TEMPLATE_PACK = "bootstrap4"
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
 CRISPY_FAIL_SILENTLY = not DEBUG
 
 XFF_TRUSTED_PROXY_DEPTH = 1

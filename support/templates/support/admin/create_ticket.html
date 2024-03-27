@@ -1,0 +1,13 @@
+{% extends 'support/base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+    <section class="stripe">
+        <div class="container my-5">
+            <div class="bg-light p-3 rounded my-4">
+                <h1 class="display-4">Create new ticket</h1>
+                <hr>
+                {% crispy ticket_create_form ticket_create_form.helper %}
+            </div>
+        </div>
+    </section>
+{% endblock %}

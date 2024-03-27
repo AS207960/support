@@ -164,7 +164,71 @@ class TicketEditForm(forms.ModelForm):
             'due_date'
         )
 
-        self.helper.add_input(crispy_forms.layout.Submit('submit', 'Update'))
+        self.helper.add_input(crispy_forms.layout.Submit('submit', 'Create'))
+
+    def clean_message(self):
+        data = self.cleaned_data['message']
+        return markdown.convert(data)
+
+
+class TicketCreateForm(forms.Form):
+    customer_name = forms.CharField(label="Customer name", required=True, max_length=255)
+    customer_email = forms.EmailField(label="Customer email", required=True)
+    customer_phone = PhoneNumberField(label="Customer phone", required=False)
+    customer_phone_ext = forms.CharField(label="Customer phone extension", required=False, max_length=64)
+
+    subject = forms.CharField(label="Subject", required=True, max_length=255)
+    source = forms.ChoiceField(
+        choices=models.Ticket.SOURCES, label="Source", required=True, initial=models.Ticket.SOURCE_INTERNAL)
+    priority = forms.ChoiceField(
+        choices=models.Ticket.PRIORITIES, label="Priority", required=True, initial=models.Ticket.PRIORITY_NORMAL)
+    due_date = forms.DateTimeField(label="Due date", required=False)
+
+    message = forms.CharField(
+        widget=forms.Textarea(attrs={
+            "rows": 5
+        }), label="Message", required=True
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.helper = crispy_forms.helper.FormHelper()
+        self.helper.use_custom_control = False
+        self.helper.field_class = 'my-1'
+        self.helper.layout = crispy_forms.layout.Layout(
+            crispy_forms.layout.Fieldset(
+                'Customer',
+                'customer_name',
+                'customer_email',
+                crispy_forms.layout.Row(
+                    crispy_forms.layout.Column('customer_phone'),
+                    crispy_forms.layout.Column('customer_phone_ext'),
+                )
+            ),
+            crispy_forms.layout.Fieldset(
+                'Ticket',
+                'subject',
+                crispy_forms.layout.Row(
+                    crispy_forms.layout.Column('source'),
+                    crispy_forms.layout.Column('priority'),
+                    crispy_forms.layout.Column('due_date'),
+                ),
+                'message',
+                crispy_forms.layout.HTML(
+                    '<p>'
+                    'Markdown supported<br/>'
+                    '<small>Greeting and signature will be added automatically</small>'
+                    '</p>'
+                ),
+            )
+        )
+
+        self.helper.add_input(crispy_forms.layout.Submit('submit', 'Create'))
+
+    def clean_message(self):
+        data = self.cleaned_data['message']
+        return markdown.convert(data)
 
 
 class TicketCloseForm(forms.Form):
@@ -222,13 +286,13 @@ class TicketReopenForm(forms.Form):
 
     def clean_message(self):
         data = self.cleaned_data['message']
-        markdown = markdown2.Markdown()
         return markdown.convert(data)
 
 
 class UserModelChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         return f"{obj.get_full_name()} - {obj.email}"
+
 
 class TicketAssignForm(forms.Form):
     assign_to = UserModelChoiceField(

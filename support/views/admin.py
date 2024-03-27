@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.utils import timezone
 from .. import forms, models, tasks
 from django.db.models import OuterRef, Subquery, Q
 from django.core.paginator import Paginator
@@ -233,4 +234,44 @@ def assign_ticket(request, ticket_id):
     return render(request, "support/admin/assign_ticket.html", {
         "ticket": ticket,
         "ticket_assign_form": ticket_assign_form
+    })
+
+
+@login_required
+@permission_required('support.add_ticket', raise_exception=True)
+def create_ticket(request):
+    if request.method == "POST":
+        ticket_create_form = forms.TicketCreateForm(request.POST)
+
+        if ticket_create_form.is_valid():
+            customer = models.Customer.get_by_email(
+                email=ticket_create_form.cleaned_data['customer_email'],
+                name=ticket_create_form.cleaned_data['customer_name']
+            )
+
+            customer.phone = ticket_create_form.cleaned_data['customer_phone']
+            customer.phone_ext = ticket_create_form.cleaned_data['customer_phone_ext']
+            customer.save()
+
+            ticket = models.Ticket(
+                ref=models.make_ticket_ref(),
+                customer=customer,
+                customer_verified=False,
+                state=models.Ticket.STATE_OPEN,
+                source=models.Ticket.SOURCE_INTERNAL,
+                priority=ticket_create_form.cleaned_data['priority'],
+                subject=ticket_create_form.cleaned_data['subject'],
+                due_date=ticket_create_form.cleaned_data['due_date'],
+                assigned_to=None
+            )
+            ticket.save()
+
+            tasks.post_reply(ticket, ticket_create_form.cleaned_data['message'], request.user)
+
+            return redirect('agent-view-ticket', ticket.id)
+    else:
+        ticket_create_form = forms.TicketCreateForm()
+
+    return render(request, "support/admin/create_ticket.html", {
+        "ticket_create_form": ticket_create_form
     })

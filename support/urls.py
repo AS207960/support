@@ -14,6 +14,9 @@ urlpatterns = [
     path('agent/tickets/closed/', views.admin.closed_tickets, name='agent-closed-tickets'),
     path('agent/tickets/answered/', views.admin.answered_tickets, name='agent-answered-tickets'),
     path('agent/tickets/own/', views.admin.own_tickets, name='agent-own-tickets'),
+
+    path('agent/tickets/new/', views.admin.create_ticket, name='agent-create-ticket'),
+
     path('agent/tickets/<str:ticket_id>/', views.admin.view_ticket, name='agent-view-ticket'),
     path('agent/tickets/<str:ticket_id>/edit/', views.admin.edit_ticket, name='agent-edit-ticket'),
     path('agent/tickets/<str:ticket_id>/claim/', views.admin.claim_ticket, name='agent-claim-ticket'),

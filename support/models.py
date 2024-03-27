@@ -51,6 +51,7 @@ def create_user_profile(instance, **_kwargs):
         else:
             Customer.objects.create(user=instance)
 
+
 @receiver(user_logged_in)
 def update_permissions(request, **_kwargs):
     request.user.customer.is_agent = "support.view_ticket" in request.user.get_all_permissions()
@@ -79,11 +80,13 @@ class Ticket(models.Model):
     SOURCE_WEB = "W"
     SOURCE_EMAIL = "E"
     SOURCE_OTHER = "O"
+    SOURCE_INTERNAL = "I"
     SOURCES = (
         (SOURCE_PHONE, "Phone"),
         (SOURCE_WEB, "Web"),
         (SOURCE_EMAIL, "Email"),
-        (SOURCE_OTHER, "Other")
+        (SOURCE_OTHER, "Other"),
+        (SOURCE_INTERNAL, "Internal"),
     )
 
     PRIORITY_LOW = "L"

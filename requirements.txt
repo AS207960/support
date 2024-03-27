@@ -4,6 +4,7 @@ sentry-sdk
 psycopg2-binary
 gunicorn
 django-crispy-forms
+crispy-bootstrap5
 django-xff
 djangorestframework
 django-cockroachdb==5.0.*

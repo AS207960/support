@@ -72,6 +72,7 @@ def send_open_ticket_email(ticket_id, verified: bool):
 
     email = make_ticket_email(ticket)
     email.subject = 'Ticket opened'
+    email.extra_headers["Auto-Submitted"] = "auto-replied"
     email.body = txt_content
     email.attach_alternative(html_content, "text/html")
     email.send()
@@ -150,6 +151,7 @@ def send_reply_email(message_id):
     txt_content = render_to_string("support_email/ticket_message.txt", context)
 
     email.subject = f'Re: {ticket_message.ticket.subject}'
+    email.extra_headers["Auto-Submitted"] = "no"
     email.body = txt_content
     email.attach_alternative(html_content, "text/html")
     email.send()

@@ -83,6 +83,11 @@ def postal_webhook(request):
         logging.warning("No date, throwing away")
         return HttpResponse(status=204)
 
+    if 'auto-submitted' in message:
+        if message['auto-submitted'] in ('auto-generated', 'auto-replied'):
+            logging.warning("Automatically generated message, throwing away")
+            return HttpResponse(status=204)
+
     message_date = message['date']
     message_date = (
                        message_date.datetime if message_date.datetime else timezone.now()

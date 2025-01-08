@@ -209,6 +209,8 @@ FEEDBACK_URL = os.getenv("FEEDBACK_URL")
 RECAPTCHA_SITE_KEY = os.getenv("RECAPTCHA_SITE_KEY")
 RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
 
+RABBITMQ_RPC_URL = os.getenv("RABBITMQ_RPC_URL")
+
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',

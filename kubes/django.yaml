@@ -71,7 +71,6 @@ spec:
               prefix: "EMAIL_"
             - secretRef:
                 name: support-celery
-              prefix: "CELERY_"
             - secretRef:
                 name: support-recaptcha
               prefix: "RECAPTCHA_"
@@ -134,7 +133,6 @@ spec:
               prefix: "EMAIL_"
             - secretRef:
                 name: support-celery
-              prefix: "CELERY_"
             - secretRef:
                 name: support-recaptcha
               prefix: "RECAPTCHA_"
@@ -189,7 +187,6 @@ spec:
               prefix: "EMAIL_"
             - secretRef:
                 name: support-celery
-              prefix: "CELERY_"
             - secretRef:
                 name: support-recaptcha
               prefix: "RECAPTCHA_"

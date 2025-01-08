@@ -147,6 +147,61 @@ spec:
                 name: support-pushover
               prefix: "PUSHOVER_"
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: support-keycloak-events
+  labels:
+    app: support
+    part: keycloak-events
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: support
+      part: keycloak-events
+  template:
+    metadata:
+      annotations:
+        cni.projectcalico.org/ipv6pools: "[\"default-ipv6-ippool\"]"
+      labels:
+        app: support
+        part: keycloak-events
+    spec:
+      containers:
+        - name: keycloak-events
+          image: as207960/support-django:(version)
+          imagePullPolicy: Always
+          command: ["sh", "-c", "python3 manage.py keycloak-events"]
+          envFrom:
+            - configMapRef:
+                name: support-django-conf
+            - secretRef:
+                name: support-db-creds
+              prefix: "DB_"
+            - secretRef:
+                name: support-django-secret
+            - secretRef:
+                name: support-keycloak
+              prefix: "KEYCLOAK_"
+            - secretRef:
+                name: support-email
+              prefix: "EMAIL_"
+            - secretRef:
+                name: support-celery
+              prefix: "CELERY_"
+            - secretRef:
+                name: support-recaptcha
+              prefix: "RECAPTCHA_"
+            - secretRef:
+                name: support-s3
+            - secretRef:
+                name: support-stripe
+              prefix: "STRIPE_"
+            - secretRef:
+                name: support-pushover
+              prefix: "PUSHOVER_"
+---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -179,6 +234,18 @@ spec:
     matchLabels:
       app: support
       part: celery
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: support-keycloak-events
+spec:
+  podSelector:
+    matchLabels:
+      app: support
+      part: keycloak-events
   policyTypes:
   - Ingress
 ---

@@ -55,6 +55,15 @@ def make_ticket_email(ticket: models.Ticket, message_id=None) -> EmailMultiAlter
 def send_open_ticket_email(ticket_id, verified: bool):
     ticket = models.Ticket.objects.get(id=ticket_id)
 
+    ticket_message = models.TicketMessage(
+        ticket=ticket,
+        type=models.TicketMessage.TYPE_SYSTEM,
+        message="<p>Ticket opened email sent</p>",
+        date=timezone.now()
+    )
+    ticket_message.email_message_id = f"<{ticket_message.id}@support.glauca.digital>"
+    ticket_message.save()
+
     verification_url = None
     if not verified:
         ticket.verification_token = secrets.token_urlsafe(64)
@@ -70,7 +79,7 @@ def send_open_ticket_email(ticket_id, verified: bool):
     html_content = render_to_string("support_email/ticket_opened.html", context)
     txt_content = render_to_string("support_email/ticket_opened.txt", context)
 
-    email = make_ticket_email(ticket)
+    email = make_ticket_email(ticket, message_id=ticket_message.email_message_id)
     email.subject = 'Ticket opened'
     email.extra_headers["Auto-Submitted"] = "auto-replied"
     email.body = txt_content

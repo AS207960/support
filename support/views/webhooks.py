@@ -10,7 +10,6 @@ import json
 import email.parser
 import email.policy
 import markdown2
-import talon.quotations
 import io
 import uuid
 import bs4
@@ -23,7 +22,6 @@ import stripe
 import stripe.identity
 from .. import models, tasks, middleware
 
-talon.init()
 logger = logging.getLogger(__name__)
 
 
@@ -125,11 +123,11 @@ def postal_webhook(request):
             logging.warning(f"No usable body, throwing away")
             return HttpResponse(status=200)
         else:
-            plain_body = talon.quotations.extract_from(plain_body.get_content(), plain_body.get_content_type())
+            plain_body = plain_body.get_content()
             markdown = markdown2.Markdown()
             html_body = markdown.convert(plain_body)
     else:
-        html_body = talon.quotations.extract_from(html_body.get_content(), html_body.get_content_type())
+        html_body = html_body.get_content()
 
     soup = bs4.BeautifulSoup(html_body, 'html.parser')
 

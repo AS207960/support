@@ -14,7 +14,6 @@ django-phonenumber-field[phonenumbers]
 markdown2
 html2text
 lxml[html_clean]
-git+https://github.com/AS207960/talon
 celery
 cryptography
 crispy-bootstrap4

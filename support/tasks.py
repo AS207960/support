@@ -57,7 +57,7 @@ def send_open_ticket_email(ticket_id, verified: bool):
 
     ticket_message = models.TicketMessage(
         ticket=ticket,
-        type=models.TicketMessage.TYPE_SYSTEM,
+        type=models.TicketMessage.TYPE_SYSTEM_RESPONSE,
         message="<p>Ticket opened email sent</p>",
         date=timezone.now()
     )

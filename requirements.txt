@@ -19,6 +19,6 @@ cryptography
 crispy-bootstrap4
 beautifulsoup4
 django-storages
-boto3
+boto3==1.35.99
 stripe>=5.0.0
 pika

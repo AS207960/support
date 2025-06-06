@@ -1,58 +1,66 @@
-<html lang="en">
+{% load tz %}
+<!doctype html>
+<html style="padding: 0 !important;;margin: 0 !important;" lang="en">
 <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+    <base target="_blank">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+      div[style*="margin: 16px 0"] { margin:0 !important; font-size:100% !important; }
     </style>
+    <title></title>
 </head>
-<body style="padding: 0;margin: 0">
-<div style="background:#2a4365;font-family:'Montserrat',sans-serif,'Noto Color Emoji','Apple Color Emoji';height:100% !important;width:100% !important;">
-    <div style="padding: 40px;">
-        <table style="margin: 0 auto; border-radius: 5px; background: #fff; max-width: 600px; width:100%; border: 1px solid #c7d0d4; border-spacing: 0;">
+<body style="padding: 0 !important;;margin: 0 !important;">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" type="text/css">
+<div style="background: #2a4365 linear-gradient(270deg, #319795, #2a4365, #3182ce);font-family: 'Montserrat', sans-serif, 'Noto Color Emoji', 'Apple Color Emoji';height: 100% !important;width: 100% !important;">
+    <div style="padding: 40px 10px;">
+        <table role="presentation" style="margin: 0 auto; max-width: 600px; width:100%; border: 1px solid rgba(0, 0, 0, 0.125); border-spacing: 0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border-radius: 0.5rem; background-color: #EBF8FF;">
             <tr>
-                <td style="border-bottom: 1px solid #dee7eb; text-align: center;padding: 20px 0;">
+                <td style="border-bottom: 1px solid #dee7eb; text-align: center;padding: 20px 10px;">
                     <img src="https://as207960.net/assets/img/logo2.png" height="150px" alt="Glauca" />
+                    <h2 style="margin: 0;">Glauca Digital</h2>
                 </td>
             </tr>
             <tr>
                 <td style="padding: 20px;">
-                    <p>
-                        Hello {{ name }},
+                   <p>
+                        Hello {{ name }}
                     </p>
                     {% block content %}{% endblock %}
                     <p>
                         Thanks,<br/>
-                        The Glauca / AS207960 Team<br/>
+                        The Glauca Team<br/>
                         <a href="https://glauca.digital">glauca.digital</a>
                     </p>
                 </td>
             </tr>
             {% if feedback_url %}
                 <tr>
-                  <td style="border-top: 1px solid #dee7eb; background-color:#eee; text-align: center;padding: 20px 0;">
+                  <td style="border-top: 1px solid #dee7eb; background-color:#eee; text-align: center;padding: 20px 10px;">
                     <h2>How did we do?</h2>
-                    <table style="width:100%;table-layout: fixed;">
+                    <table role="presentation" style="width:100%;table-layout: fixed;">
                       <tr>
-                        <td style="text-align:center;border-right: 1px solid #ccc;">
+                        <td style="text-align:center;border-right: 1px solid #ccc;padding: 0 5px;">
                           <a href="{{ feedback_url }}?rating=1" style="color:#333;text-decoration: none;">
                               <span style="font-size:30px">&#x1f640;&#xfe0f;</span><br>The worst
                           </a>
                         </td>
-                        <td style="text-align:center;border-right: 1px solid #ccc;">
+                        <td style="text-align:center;border-right: 1px solid #ccc;padding: 0 5px;">
                           <a href="{{ feedback_url }}?rating=2" style="color:#333;text-decoration: none;">
                               <span style="font-size:30px">&#x1f63e;&#xfe0f;</span><br>Bearable
                           </a>
                         </td>
-                        <td style="text-align:center;border-right: 1px solid #ccc;">
+                        <td style="text-align:center;border-right: 1px solid #ccc;padding: 0 5px;">
                           <a href="{{ feedback_url }}?rating=3" style="color:#333;text-decoration: none;">
                               <span style="font-size:30px">&#x1f408;&#xfe0f;</span><br>Eh
                           </a>
                         </td>
-                        <td style="text-align:center;border-right: 1px solid #ccc;">
+                        <td style="text-align:center;border-right: 1px solid #ccc;padding: 0 5px;">
                           <a href="{{ feedback_url }}?rating=4" style="color:#333;text-decoration: none;">
                               <span style="font-size:30px">&#x1f638;&#xfe0f;</span><br>Good but not perfect
                           </a>
                         </td>
-                        <td style="text-align:center;border-right: 1px solid #dee7eb;">
+                        <td style="text-align:center;padding: 5px 0;">
                           <a href="{{ feedback_url }}?rating=5" style="color:#333;text-decoration: none;">
                               <span style="font-size:30px">&#x1f63b;&#xfe0f;</span><br>Loved it
                           </a>
@@ -62,6 +70,54 @@
                   </td>
                 </tr>
             {% endif %}
+            <tr>
+              <td style="border-top: 1px solid #dee7eb; border-bottom-left-radius: 0.5rem; border-bottom-right-radius: 0.5rem; background-color:#eee; text-align: center;padding: 20px;">
+                <p style="font-size: 12px;">
+                  Copyright &copy; {% now "Y" %}, AS207960 Cyfyngedig
+                </p>
+                <div style="font-size: 12px; text-align: left;">
+                <p>
+                    Glauca Digital and the Glauca logo are registered trademarks in the UK, under &#x2116; UK00003718474 and &#x2116; UK00003718468, respectively.
+                </p>
+                <p>
+                    AS207960 Cyfyngedig, trading as Glauca Digital, is:
+                </p>
+                <ul>
+                    <li>
+                        a limited company registered in Wales (&#x2116;
+                        <a href="https://find-and-update.company-information.service.gov.uk/company/12417574">12417574</a>, LEI 875500FXNCJPAPF3PD10)
+                    </li>
+                    <li>
+                        a registered data controller with the Information Commissioner's Office (&#x2116;
+                        <a href="https://ico.org.uk/ESDWebPages/Entry/ZA782876">ZA782876</a>)
+                    </li>
+                    <li>
+                        registered for VAT in the UK (&#x2116; GB378323867)
+                    </li>
+                    <li>
+                        registered for VAT in the EU (&#x2116; EU372013983)
+                    </li>
+                    <li>
+                        registered for VAT in Turkey ( &#x2116; 0861333524)
+                    </li>
+                    <li>
+                        registered for VAT in South Korea (&#x2116; 522-80-03080)
+                    </li>
+                </ul>
+                <p>
+                    AS207960 Ewrop OÜ, trading as Glauca Digital, is:
+                </p>
+                <ul>
+                    <li>
+                        a limited company registered in Estonia (&#x2116; <a href="https://ariregister.rik.ee/eng/company/16755226/AS207960-Ewrop-OÜ">16755226</a>, LEI 254900Q0YPKHENRMYX42)
+                    </li>
+                    <li>
+                        registered for VAT in Estonia (&#x2116; EE102625532)
+                    </li>
+                  </ul>
+                 </div>
+              </td>
+            </tr>
         </table>
     </div>
 </div>

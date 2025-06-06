@@ -22,6 +22,7 @@ urlpatterns = [
     path('agent/tickets/<str:ticket_id>/claim/', views.admin.claim_ticket, name='agent-claim-ticket'),
     path('agent/tickets/<str:ticket_id>/close/', views.admin.close_ticket, name='agent-close-ticket'),
     path('agent/tickets/<str:ticket_id>/reopen/', views.admin.reopen_ticket, name='agent-reopen-ticket'),
+    path('agent/tickets/<str:ticket_id>/block/', views.admin.block_email, name='agent-block-email'),
     path('agent/tickets/<str:ticket_id>/delete/', views.admin.delete_ticket, name='agent-delete-ticket'),
     path('agent/tickets/<str:ticket_id>/assign/', views.admin.assign_ticket, name='agent-assign-ticket'),
 

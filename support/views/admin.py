@@ -205,6 +205,22 @@ def reopen_ticket(request, ticket_id):
 
 @login_required
 @permission_required('support.change_ticket', raise_exception=True)
+def block_email(request, ticket_id):
+    ticket = get_object_or_404(models.Ticket, id=ticket_id)
+
+    if request.method == "POST":
+        if request.POST.get("block") == "true":
+            ticket.customer.emails_blocked = True
+            ticket.customer.save()
+            return redirect('agent-view-ticket', ticket.id)
+
+    return render(request, "support/admin/block_email.html", {
+        "ticket": ticket,
+    })
+
+
+@login_required
+@permission_required('support.change_ticket', raise_exception=True)
 def delete_ticket(request, ticket_id):
     ticket = get_object_or_404(models.Ticket, id=ticket_id)
 

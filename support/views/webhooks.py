@@ -171,6 +171,10 @@ def postal_webhook(request):
         from_address = message['from'].addresses[0]
         subject = message['subject'] if message['subject'] else "No subject"
         customer = models.Customer.get_by_email(from_address.addr_spec, from_address.display_name)
+        if customer.emails_blocked:
+            tasks.send_email_blocked.delay(customer.id, message['message-id'])
+            return HttpResponse(status=204)
+
         new_message = tasks.open_ticket(
             customer, subject, html_body, source=models.Ticket.SOURCE_EMAIL, priority=models.Ticket.PRIORITY_NORMAL,
             verified=False, email_id=message['message-id'], date=message_date

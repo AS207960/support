@@ -87,6 +87,32 @@ def send_open_ticket_email(ticket_id, verified: bool):
     email.send()
 
 
+@shared_task(
+    autoretry_for=(Exception,), retry_backoff=1, retry_backoff_max=60, max_retries=None, default_retry_delay=3
+)
+def send_email_blocked(customer_id, message_id):
+    customer = models.Customer.objects.get(id=customer_id)
+
+    context = {
+        "name": customer.full_name,
+        "support_form_url": settings.EXTERNAL_URL_BASE + reverse("new_ticket")
+    }
+    html_content = render_to_string("support_email/ticket_blocked.html", context)
+    txt_content = render_to_string("support_email/ticket_blocked.txt", context)
+
+    email = EmailMultiAlternatives(
+        to=[customer.email],
+        headers={
+            "In-Reply-To": message_id,
+            "Auto-Submitted": "auto-replied"
+        },
+        subject="Your email to Glauca",
+        body=txt_content,
+    )
+    email.attach_alternative(html_content, "text/html")
+    email.send()
+
+
 def open_ticket(
         customer: models.Customer, subject: str, html_message: str, source: str, priority: str, verified: bool = False,
         email_id: str = None, date=None

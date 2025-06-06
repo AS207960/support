@@ -1,0 +1,6 @@
+{% extends "support_email/email_base.txt" %}
+{% block content %}
+Due to high levels of spam, we're not able to accept tickets from you over email.
+Please submit your ticket using our contact form:
+{{ support_form_url }}
+{% endblock content %}

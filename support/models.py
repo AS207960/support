@@ -19,6 +19,7 @@ class Customer(models.Model):
     phone = PhoneNumberField(blank=True, null=True)
     phone_ext = models.CharField(max_length=64, blank=True, null=True, verbose_name="Phone extension")
     pushover_user_key = models.CharField(max_length=255, blank=True, null=True)
+    emails_blocked = models.BooleanField(blank=True, null=False, default=False)
 
     def __str__(self):
         return f"{self.full_name} - {self.email}"
@@ -33,6 +34,9 @@ class Customer(models.Model):
     def get_by_email(cls, email, name=None):
         customer = Customer.objects.filter(email=email).first()
         if customer:
+            if name:
+                customer.full_name = name
+                customer.save()
             return customer
         else:
             customer = Customer.objects.create(email=email, full_name=name)

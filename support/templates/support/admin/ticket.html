@@ -18,6 +18,9 @@
                         {% elif ticket.state == "C" %}
                             <a href="{% url 'agent-reopen-ticket' ticket.id %}" class="btn btn-info">Reopen</a>
                         {% endif %}
+                        {% if not ticket.customer.emails_blocked %}
+                            <a href="{% url 'agent-block-email' ticket.id %}" class="btn btn-danger">Block email</a>
+                        {% endif %}
                         <a href="{% url 'agent-delete-ticket' ticket.id %}" class="btn btn-danger">Delete</a>
                     </div>
                 {% endif %}

@@ -13,7 +13,8 @@ requests
 django-phonenumber-field[phonenumbers]
 markdown2
 html2text
-lxml[html_clean]
+lxml
+lxml_html_clean
 celery
 cryptography
 crispy-bootstrap4

@@ -32,40 +32,46 @@ def new_ticket(request):
         form.fields['phone_ext'].disabled = True
 
     if request.method == "POST":
+        recaptcha_success = False
         recaptcha_resp = request.POST.get("g-recaptcha-response")
-        if recaptcha_resp:
-            r = requests.post("https://www.google.com/recaptcha/api/siteverify", data={
-                "secret": settings.RECAPTCHA_SECRET_KEY,
-                "response": recaptcha_resp
-            }).json()
-            if r["success"] and form.is_valid():
-                if request.user.is_authenticated:
-                    customer = request.user.customer
+        if not settings.RECAPTCHA_SECRET_KEY:
+            recaptcha_success = True
+        else:
+            if recaptcha_resp:
+                r = requests.post("https://www.google.com/recaptcha/api/siteverify", data={
+                    "secret": settings.RECAPTCHA_SECRET_KEY,
+                    "response": recaptcha_resp
+                }).json()
+                recaptcha_success = r["success"]
+
+        if recaptcha_success and form.is_valid():
+            if request.user.is_authenticated:
+                customer = request.user.customer
+            else:
+                is_valid = True
+                customer = models.Customer.objects.filter(email=form.cleaned_data['email']).first()
+                if customer:
+                    if customer.user and customer.user != request.user:
+                        is_valid = False
+                        form.add_error('email', "Email already connected to user, please login.")
                 else:
-                    is_valid = True
-                    customer = models.Customer.objects.filter(email=form.cleaned_data['email']).first()
-                    if customer:
-                        if customer.user and customer.user != request.user:
-                            is_valid = False
-                            form.add_error('email', "Email already connected to user, please login.")
-                    else:
-                        customer = models.Customer(
-                            email=form.cleaned_data['email'],
-                        )
+                    customer = models.Customer(
+                        email=form.cleaned_data['email'],
+                    )
 
-                    if is_valid:
-                        customer.full_name = form.cleaned_data['name']
-                        customer.phone = form.cleaned_data['phone']
-                        customer.phone_ext = form.cleaned_data['phone_ext']
-                        customer.save()
+                if is_valid:
+                    customer.full_name = form.cleaned_data['name']
+                    customer.phone = form.cleaned_data['phone']
+                    customer.phone_ext = form.cleaned_data['phone_ext']
+                    customer.save()
 
-                tasks.open_ticket(
-                    customer, form.cleaned_data['subject'], form.cleaned_data['message'], models.Ticket.SOURCE_WEB,
-                    models.Ticket.PRIORITY_NORMAL, verified=request.user.is_authenticated
-                )
-                return render(request, "support/ticket_opened.html", {
-                    "ticket_email": customer.email
-                })
+            tasks.open_ticket(
+                customer, form.cleaned_data['subject'], form.cleaned_data['message'], models.Ticket.SOURCE_WEB,
+                models.Ticket.PRIORITY_NORMAL, verified=request.user.is_authenticated
+            )
+            return render(request, "support/ticket_opened.html", {
+                "ticket_email": customer.email
+            })
 
     return render(request, "support/new_ticket.html", {
         "ticket_form": form

@@ -157,6 +157,8 @@ with open(os.path.join(BASE_DIR, "secrets/stripe.json")) as f:
     stripe_conf = json.load(f)
 with open(os.path.join(BASE_DIR, "secrets/pushover.json")) as f:
     pushover_conf = json.load(f)
+with open(os.path.join(BASE_DIR, "secrets/pgp.json")) as f:
+    pgp_conf = json.load(f)
 
 stripe.api_key = stripe_conf["server_key"]
 STRIPE_ENDPOINT_SECRET = stripe_conf["endpoint_secret"]
@@ -171,6 +173,9 @@ OIDC_SCOPES = keycloak_conf["scopes"]
 
 RECAPTCHA_SITE_KEY = recaptcha_conf["site_key"]
 RECAPTCHA_SECRET_KEY = recaptcha_conf["secret_key"]
+
+PGP_PRIVATE_KEY_FILE = pgp_conf["file"]
+PGP_PRIVATE_KEY_PASSWORD = pgp_conf["password"]
 
 FEEDBACK_URL = "none"
 

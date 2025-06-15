@@ -1,3 +1,4 @@
+import django.core.mail
 import html2text
 from . import models
 from django.utils import timezone
@@ -6,6 +7,9 @@ from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.shortcuts import reverse
 from celery import shared_task
+import email.mime.multipart
+import email.message
+import email.generator
 import pgpy
 import requests
 import secrets
@@ -15,6 +19,49 @@ import django_keycloak_auth.clients
 
 
 own_priv_key, _ = pgpy.PGPKey.from_file(settings.PGP_PRIVATE_KEY_FILE)
+
+
+class PGPEmail(EmailMultiAlternatives):
+    def message(self):
+        base_msg = super().message()
+        for part in base_msg.walk():
+            if isinstance(part, django.core.mail.message.SafeMIMEText):
+                del part["Content-Transfer-Encoding"]
+                part.set_charset(django.core.mail.message.utf8_charset_qp)
+        new_msg = email.mime.multipart.MIMEMultipart(
+            _subtype="signed", micalg="pgp-sha512", protocol="application/pgp-signature"
+        )
+        for k, v in base_msg.items():
+            if k in ("Content-Type", "MIME-Version"):
+                continue
+            new_msg[k] = v
+        new_ct = base_msg["Content-Type"] + "; protected-headers=\"v1\""
+        del base_msg["Content-Type"]
+        base_msg["Content-Type"] = new_ct
+        for k in base_msg.keys():
+            if k not in (
+                    "Content-Type", "Subject", "To", "From", "Date",
+                    "In-Reply-To", "References", "Message-ID"
+            ):
+                del base_msg[k]
+        base_msg.policy = base_msg.policy.clone(cte_type="7bit")
+        base_msg = base_msg.as_string()
+        base_text = base_msg.replace('\n', '\r\n').strip().encode()
+        with own_priv_key.unlock(settings.PGP_PRIVATE_KEY_PASSWORD):
+            signature = own_priv_key.sign(base_text)
+        sig_msg = email.message.Message()
+        sig_msg['Content-Type'] = 'application/pgp-signature; name="signature.asc"'
+        sig_msg['Content-Description'] = 'OpenPGP digital signature'
+        sig_msg.set_payload(str(signature))
+        new_msg.set_boundary(email.generator._make_boundary(base_msg))
+        new_msg.set_payload(
+            "--%(boundary)s\n%(mix)s\n--%(boundary)s\n%(sign)s\n--%(boundary)s--\n" % {
+                'boundary': new_msg.get_boundary(),
+                'mix': base_msg,
+                'sign': sig_msg.as_string(),
+            }
+        )
+        return new_msg
 
 
 def get_feedback_url(description: str, reference: str):
@@ -46,7 +93,7 @@ def make_ticket_email(ticket: models.Ticket, message_id=None) -> EmailMultiAlter
     if message_id:
         headers["Message-ID"] = f"{message_id}"
 
-    email = EmailMultiAlternatives(
+    email = PGPEmail(
         to=[ticket.customer.email],
         headers=headers
     )
@@ -106,7 +153,7 @@ def send_email_blocked(customer_id, message_id):
     html_content = render_to_string("support_email/ticket_blocked.html", context)
     txt_content = render_to_string("support_email/ticket_blocked.txt", context)
 
-    email = EmailMultiAlternatives(
+    email = PGPEmail(
         to=[customer.email],
         headers={
             "In-Reply-To": message_id,

@@ -77,7 +77,7 @@ class PGPEmail(EmailMultiAlternatives):
             new_msg.attach(ci_msg)
 
             enc_msg = email.message.Message()
-            enc_msg['Content-Type'] = 'application/octet-stream; name="encypted.asc"'
+            enc_msg['Content-Type'] = 'application/octet-stream; name="encrypted.asc"'
             enc_msg['Content-Description'] = 'OpenPGP encrypted message'
             tbs_msg = pgpy.PGPMessage.new(base_text)
             with own_priv_key.unlock(settings.PGP_PRIVATE_KEY_PASSWORD):

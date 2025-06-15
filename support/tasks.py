@@ -44,9 +44,6 @@ class PGPEmail(EmailMultiAlternatives):
         del base_msg["Content-Type"]
         base_msg["Content-Type"] = new_ct
 
-        base_msg_str = base_msg.as_string()
-        base_text = base_msg_str.replace('\n', '\r\n').encode()
-
         if enc_pgp_key:
             new_msg = django.core.mail.message.SafeMIMEMultipart(
                 _subtype="encrypted", protocol="application/pgp-encrypted"
@@ -70,6 +67,8 @@ class PGPEmail(EmailMultiAlternatives):
             ):
                 del base_msg[k]
 
+        base_msg_str = base_msg.as_string()
+
         if enc_pgp_key:
             ci_msg = email.message.Message()
             ci_msg['Content-Type'] = 'application/pgp-encrypted'
@@ -79,7 +78,7 @@ class PGPEmail(EmailMultiAlternatives):
             enc_msg = email.message.Message()
             enc_msg['Content-Type'] = 'application/octet-stream; name="encrypted.asc"'
             enc_msg['Content-Description'] = 'OpenPGP encrypted message'
-            tbs_msg = pgpy.PGPMessage.new(base_text)
+            tbs_msg = pgpy.PGPMessage.new(base_msg_str, cleartext=True)
             with own_priv_key.unlock(settings.PGP_PRIVATE_KEY_PASSWORD):
                 tbs_msg |= own_priv_key.sign(tbs_msg)
             enc_pgp_key = enc_pgp_key.as_key()
@@ -87,7 +86,7 @@ class PGPEmail(EmailMultiAlternatives):
             enc_msg.set_payload(str(enc))
             new_msg.attach(enc_msg)
         else:
-            tbs_msg = pgpy.PGPMessage.new(base_text, cleartext=True)
+            tbs_msg = pgpy.PGPMessage.new(base_msg_str, cleartext=True)
             with own_priv_key.unlock(settings.PGP_PRIVATE_KEY_PASSWORD):
                 signature = own_priv_key.sign(tbs_msg)
             sig_msg = email.message.Message()

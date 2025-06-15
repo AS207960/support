@@ -22,45 +22,85 @@ own_priv_key, _ = pgpy.PGPKey.from_file(settings.PGP_PRIVATE_KEY_FILE)
 
 
 class PGPEmail(EmailMultiAlternatives):
+    customer: typing.Optional[models.Customer]
+
+    def __init__(self, *args, customer=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.customer = customer
+
     def message(self):
         base_msg = super().message()
         for part in base_msg.walk():
             if isinstance(part, django.core.mail.message.SafeMIMEText):
                 del part["Content-Transfer-Encoding"]
                 part.set_charset(django.core.mail.message.utf8_charset_qp)
-        new_msg = email.mime.multipart.MIMEMultipart(
-            _subtype="signed", micalg="pgp-sha512", protocol="application/pgp-signature"
-        )
-        for k, v in base_msg.items():
-            if k in ("Content-Type", "MIME-Version"):
-                continue
-            new_msg[k] = v
+
+        if self.customer:
+            enc_pgp_key = self.customer.pgp_keys.filter(primary=True).first()
+        else:
+            enc_pgp_key = None
+
         new_ct = base_msg["Content-Type"] + "; protected-headers=\"v1\""
         del base_msg["Content-Type"]
         base_msg["Content-Type"] = new_ct
+
+        base_msg = base_msg.as_string()
+        base_text = base_msg.replace('\n', '\r\n').strip().encode()
+
+        if enc_pgp_key:
+            new_msg = email.mime.multipart.MIMEMultipart(
+                _subtype="encrypted", protocol="application/pgp-encrypted"
+            )
+        else:
+            new_msg = email.mime.multipart.MIMEMultipart(
+                _subtype="signed", micalg="pgp-sha512", protocol="application/pgp-signature"
+            )
+
+        for k, v in base_msg.items():
+            if k in ("Content-Type", "MIME-Version"):
+                continue
+            if k == "Subject" and enc_pgp_key:
+                new_msg["Subject"] = "..."
+                continue
+            new_msg[k] = v
         for k in base_msg.keys():
             if k not in (
                     "Content-Type", "Subject", "To", "From", "Date",
                     "In-Reply-To", "References", "Message-ID"
             ):
                 del base_msg[k]
-        base_msg.policy = base_msg.policy.clone(cte_type="7bit")
-        base_msg = base_msg.as_string()
-        base_text = base_msg.replace('\n', '\r\n').strip().encode()
-        with own_priv_key.unlock(settings.PGP_PRIVATE_KEY_PASSWORD):
-            signature = own_priv_key.sign(base_text)
-        sig_msg = email.message.Message()
-        sig_msg['Content-Type'] = 'application/pgp-signature; name="signature.asc"'
-        sig_msg['Content-Description'] = 'OpenPGP digital signature'
-        sig_msg.set_payload(str(signature))
-        new_msg.set_boundary(email.generator._make_boundary(base_msg))
-        new_msg.set_payload(
-            "--%(boundary)s\n%(mix)s\n--%(boundary)s\n%(sign)s\n--%(boundary)s--\n" % {
-                'boundary': new_msg.get_boundary(),
-                'mix': base_msg,
-                'sign': sig_msg.as_string(),
-            }
-        )
+
+        if enc_pgp_key:
+            ci_msg = email.message.Message()
+            ci_msg['Content-Type'] = 'application/pgp-encrypted'
+            ci_msg.set_payload("Version: v1")
+            new_msg.attach(ci_msg)
+
+            enc_msg = email.message.Message()
+            enc_msg['Content-Type'] = 'application/octet-stream'
+            msg = pgpy.PGPMessage.new(base_text)
+            with own_priv_key.unlock(settings.PGP_PRIVATE_KEY_PASSWORD):
+                msg |= own_priv_key.sign(msg)
+            enc_pgp_key = enc_pgp_key.as_key()
+            enc = enc_pgp_key.encrypt(msg)
+            enc_msg.set_payload(str(enc))
+            new_msg.attach(enc_msg)
+        else:
+            with own_priv_key.unlock(settings.PGP_PRIVATE_KEY_PASSWORD):
+                signature = own_priv_key.sign(base_text)
+            sig_msg = email.message.Message()
+            sig_msg['Content-Type'] = 'application/pgp-signature; name="signature.asc"'
+            sig_msg['Content-Description'] = 'OpenPGP digital signature'
+            sig_msg.set_payload(str(signature))
+            new_msg.set_boundary(email.generator._make_boundary(base_msg))
+            new_msg.set_payload(
+                "--%(boundary)s\n%(mix)s\n--%(boundary)s\n%(sign)s\n--%(boundary)s--\n" % {
+                    'boundary': new_msg.get_boundary(),
+                    'mix': base_msg,
+                    'sign': sig_msg.as_string(),
+                }
+            )
+
         return new_msg
 
 

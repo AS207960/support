@@ -44,8 +44,8 @@ class PGPEmail(EmailMultiAlternatives):
         del base_msg["Content-Type"]
         base_msg["Content-Type"] = new_ct
 
-        base_msg = base_msg.as_string()
-        base_text = base_msg.replace('\n', '\r\n').strip().encode()
+        base_msg_str = base_msg.as_string()
+        base_text = base_msg_str.replace('\n', '\r\n').strip().encode()
 
         if enc_pgp_key:
             new_msg = email.mime.multipart.MIMEMultipart(
@@ -92,7 +92,7 @@ class PGPEmail(EmailMultiAlternatives):
             sig_msg['Content-Type'] = 'application/pgp-signature; name="signature.asc"'
             sig_msg['Content-Description'] = 'OpenPGP digital signature'
             sig_msg.set_payload(str(signature))
-            new_msg.set_boundary(email.generator._make_boundary(base_msg))
+            new_msg.set_boundary(email.generator._make_boundary(base_msg_str))
             new_msg.set_payload(
                 "--%(boundary)s\n%(mix)s\n--%(boundary)s\n%(sign)s\n--%(boundary)s--\n" % {
                     'boundary': new_msg.get_boundary(),

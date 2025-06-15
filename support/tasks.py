@@ -77,7 +77,8 @@ class PGPEmail(EmailMultiAlternatives):
             new_msg.attach(ci_msg)
 
             enc_msg = email.message.Message()
-            enc_msg['Content-Type'] = 'application/octet-stream'
+            enc_msg['Content-Type'] = 'application/octet-stream; name="encypted.asc"'
+            enc_msg['Content-Description'] = 'OpenPGP encrypted message'
             tbs_msg = pgpy.PGPMessage.new(base_text)
             with own_priv_key.unlock(settings.PGP_PRIVATE_KEY_PASSWORD):
                 tbs_msg |= own_priv_key.sign(tbs_msg)
@@ -206,6 +207,8 @@ def send_email_blocked(customer_id, message_id):
         customer=customer,
     )
     email.attach_alternative(html_content, "text/html")
+    pubkey = own_priv_key.pubkey
+    email.attach(f"OpenPGP_{pubkey.fingerprint}.asc", str(pubkey), "application/pgp-keys")
     email.send()
 
 

@@ -114,6 +114,21 @@
                             {{ message.get_type_display }}
                         {% endif %}
                     </b>
+                    {% if message.pgp_signed_message %}
+                        <br/>
+                        PGP signed message.
+                        {% if message.pgp_signature_verified %}
+                            <b>Message signature verified.</b>
+                        {% else %}
+                            <b>Signature verification failed.</b>
+                        {% endif %}
+                        <br/>
+                        {% if message.pgp_signing_key %}
+                            <b>Signed with key:</b> {{ message.pgp_signing_key.fingerprint }}
+                        {% else %}
+                            Unknown signing key.
+                        {% endif %}
+                    {% endif %}
                 </div>
                 <div class="card-body">
                     {{ message.message_safe|safe }}

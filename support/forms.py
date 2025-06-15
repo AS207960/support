@@ -317,3 +317,22 @@ class TicketAssignForm(forms.Form):
             )
         )
 
+
+class PGPKeyForm(forms.Form):
+    key = forms.CharField(
+        widget=forms.Textarea(attrs={
+            "rows": 10
+        }), label="PGP Key", required=True, help_text="Enter your ASCII armoured PGP public key here"
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.helper = crispy_forms.helper.FormHelper()
+        self.helper.use_custom_control = False
+        self.helper.field_class = 'my-1'
+        self.helper.layout = crispy_forms.layout.Layout(
+            'key',
+        )
+
+        self.helper.add_input(crispy_forms.layout.Submit('submit', 'Upload'))

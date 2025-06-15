@@ -1,0 +1,7 @@
+{% extends "support_email/email_base.txt" %}
+{% block content %}
+You sent us an encrypted email.
+Unfortunately, we weren't able to decrypt it, and so won't be able to respond to your email.
+Please try sending your message again, or using our contact form:
+{{ support_form_url }}
+{% endblock content %}

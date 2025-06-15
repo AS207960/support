@@ -1,7 +1,7 @@
 import secrets
-import django_keycloak_auth.models
 import as207960_utils.models
 import django.core.exceptions
+import pgpy
 from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_save
@@ -41,6 +41,20 @@ class Customer(models.Model):
         else:
             customer = Customer.objects.create(email=email, full_name=name)
             return customer
+
+
+class CustomerPGPKey(models.Model):
+    id = as207960_utils.models.TypedUUIDField("support_pgpkey", primary_key=True)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="pgp_keys")
+    fingerprint = models.CharField(max_length=255, db_index=True)
+    pgp_key = models.TextField()
+    primary = models.BooleanField(default=False, null=False, blank=True)
+
+    def __str__(self):
+        return f"{self.customer} - {self.fingerprint}"
+
+    def as_key(self):
+        return pgpy.PGPKey.from_blob(self.pgp_key)[0]
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
@@ -171,6 +185,9 @@ class TicketMessage(models.Model):
     date = models.DateTimeField()
     message = models.TextField()
     email_message_id = models.TextField(blank=True, null=True)
+    pgp_signed_message = models.BooleanField(default=False, blank=True, null=False)
+    pgp_signature_verified = models.BooleanField(default=False, blank=True, null=False)
+    pgp_signing_key = models.ForeignKey(CustomerPGPKey, on_delete=models.SET_NULL, blank=True, null=True)
 
     @property
     def message_safe(self):

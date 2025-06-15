@@ -10,6 +10,10 @@ urlpatterns = [
     path('verify_ticket/<str:verification_token>/', views.views.verify_ticket, name='verify_ticket'),
     path('kyc/<str:session_id>/', views.views.do_kyc, name='do-kyc'),
 
+    path('pgp/', views.views.pgp_keys, name='pgp_keys'),
+    path('pgp/new/', views.views.new_pgp_key, name='new_pgp_key'),
+    path('pgp/make_primary/<str:key_id>/', views.views.make_pgp_key_primary, name='make_pgp_key_primary'),
+
     path('agent/tickets/', views.admin.open_tickets, name='agent-open-tickets'),
     path('agent/tickets/closed/', views.admin.closed_tickets, name='agent-closed-tickets'),
     path('agent/tickets/answered/', views.admin.answered_tickets, name='agent-answered-tickets'),

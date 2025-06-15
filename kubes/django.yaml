@@ -28,6 +28,7 @@ data:
   S3_CUSTOM_DOMAIN: "support-django.content.as207960.net"
   STATIC_URL: "https://support-django.content.as207960.net/"
   MEDIA_URL: "https://support-django.content.as207960.net/"
+  PGP_PRIVATE_KEY_FILE: "/pgp/privkey.pem"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -50,11 +51,18 @@ spec:
         app: support
         part: django
     spec:
+      volumes:
+        - name: pgp
+          secret:
+            secretName: support-pgp
       initContainers:
         - name: django
           image: as207960/support-django:(version)
           imagePullPolicy: Always
           command: ["sh", "-c", "python3 manage.py collectstatic --noinput && python3 manage.py migrate && python3 manage.py sync-keycloak"]
+          volumeMounts: &volumeMounts
+            - mountPath: "/pgp/"
+              name: pgp
           envFrom: &envFrom
             - configMapRef:
                 name: support-django-conf
@@ -82,6 +90,9 @@ spec:
             - secretRef:
                 name: support-pushover
               prefix: "PUSHOVER_"
+            - secretRef:
+                name: support-pgp-pass
+              prefix: "PGP_"
       containers:
         - name: gunicorn
           image: as207960/support-django:(version)
@@ -89,6 +100,7 @@ spec:
           command: ["gunicorn", "-w", "4", "-b", "[::]:8000", "--forwarded-allow-ips", "*", "--access-logfile", "-", "--timeout=90", "as207960_support.wsgi:application"]
           ports:
             - containerPort: 8000
+          volumeMounts: *volumeMounts
           envFrom: *envFrom
 ---
 apiVersion: apps/v1
@@ -112,11 +124,18 @@ spec:
         app: support
         part: celery
     spec:
+      volumes:
+        - name: pgp
+          secret:
+            secretName: support-pgp
       containers:
         - name: celery
           image: as207960/support-django:(version)
           imagePullPolicy: Always
           command: ["celery", "-A", "as207960_support", "worker", "--loglevel=INFO", "-c", "4"]
+          volumeMounts:
+            - mountPath: "/pgp/"
+              name: pgp
           envFrom:
             - configMapRef:
                 name: support-django-conf
@@ -144,6 +163,9 @@ spec:
             - secretRef:
                 name: support-pushover
               prefix: "PUSHOVER_"
+            - secretRef:
+                name: support-pgp-pass
+              prefix: "PGP_"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -166,11 +188,18 @@ spec:
         app: support
         part: keycloak-events
     spec:
+      volumes:
+        - name: pgp
+          secret:
+            secretName: support-pgp
       containers:
         - name: keycloak-events
           image: as207960/support-django:(version)
           imagePullPolicy: Always
           command: ["sh", "-c", "python3 manage.py keycloak-events"]
+          volumeMounts:
+            - mountPath: "/pgp/"
+              name: pgp
           envFrom:
             - configMapRef:
                 name: support-django-conf
@@ -198,6 +227,9 @@ spec:
             - secretRef:
                 name: support-pushover
               prefix: "PUSHOVER_"
+            - secretRef:
+                name: support-pgp-pass
+              prefix: "PGP_"
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

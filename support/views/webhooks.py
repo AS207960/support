@@ -20,9 +20,32 @@ import cryptography.hazmat.primitives.hashes
 import cryptography.exceptions
 import stripe
 import stripe.identity
+import pgpy
+import typing
 from .. import models, tasks, middleware
 
 logger = logging.getLogger(__name__)
+own_priv_key, _ = pgpy.PGPKey.from_file(settings.PGP_PRIVATE_KEY_FILE)
+
+
+def split_multipart(contents: str, boundary: str) -> typing.List[str]:
+    parts = []
+    current_part = None
+    stream = io.StringIO(contents)
+    while line := stream.readline():
+        line = line.rstrip("\r\n")
+        if line == f"--{boundary}":
+            if current_part is not None:
+                parts.append("\r\n".join(current_part))
+            current_part = []
+        elif line == f"--{boundary}--":
+            if current_part is not None:
+                parts.append("\r\n".join(current_part))
+            break
+        else:
+            if current_part is not None:
+                current_part.append(line)
+    return parts
 
 
 @csrf_exempt
@@ -62,8 +85,8 @@ def postal_webhook(request):
 
     msg_bytes = base64.b64decode(req_body.get("message"))
 
-    message = email.parser.BytesParser(_class=email.message.EmailMessage, policy=email.policy.SMTPUTF8)\
-        .parsebytes(msg_bytes)
+    parser = email.parser.BytesParser(_class=email.message.EmailMessage, policy=email.policy.SMTPUTF8)
+    message = parser.parsebytes(msg_bytes)
 
     if 'message-id' in message:
         existing_message = models.TicketMessage.objects.filter(email_message_id=message['message-id']).first()
@@ -77,6 +100,9 @@ def postal_webhook(request):
     if 'from' not in message:
         logging.warning("No from, throwing away")
         return HttpResponse(status=204)
+    from_address = message['from'].addresses[0]
+    customer = models.Customer.get_by_email(from_address.addr_spec, from_address.display_name)
+
     if 'date' not in message:
         logging.warning("No date, throwing away")
         return HttpResponse(status=204)
@@ -85,6 +111,156 @@ def postal_webhook(request):
         if message['auto-submitted'] in ('auto-generated', 'auto-replied'):
             logging.warning("Automatically generated message, throwing away")
             return HttpResponse(status=204)
+
+    pgp_message = None
+    pgp_signature = None
+    customer_pgp_key = None
+    is_pgp_signed = False
+    is_pgp_verified = False
+
+    if message.get_content_type() == "multipart/encrypted":
+        ct_params = message['Content-Type'].params
+
+        if ct_params.get("protocol") != "application/pgp-encrypted":
+            logging.warning(f"Not a PGP encrypted email")
+            tasks.send_email_decryption_failed.delay(str(from_address), message['message-id'])
+            return HttpResponse(status=204)
+
+        encrypted_parts = list(message.iter_parts())
+        if len(encrypted_parts) != 2:
+            tasks.send_email_decryption_failed.delay(str(from_address), message['message-id'])
+            return HttpResponse(status=204)
+
+        if encrypted_parts[0].get_content_type() != "application/pgp-encrypted":
+            tasks.send_email_decryption_failed.delay(str(from_address), message['message-id'])
+            return HttpResponse(status=204)
+
+        control_info = parser.parsebytes(encrypted_parts[0].get_content())
+        if control_info["Version"] != "1":
+            tasks.send_email_decryption_failed.delay(str(from_address), message['message-id'])
+            return HttpResponse(status=204)
+
+        if encrypted_parts[1].get_content_type() != "application/octet-stream":
+            tasks.send_email_decryption_failed.delay(str(from_address), message['message-id'])
+            return HttpResponse(status=204)
+
+        pgp_message = encrypted_parts[1].get_content()
+        try:
+            pgp_message = pgpy.PGPMessage.from_blob(pgp_message)
+        except (ValueError, pgpy.errors.PGPError) as e:
+            logging.warning(f"Could not parse PGP message: {e}")
+            tasks.send_email_decryption_failed.delay(str(from_address), message['message-id'])
+            return HttpResponse(status=204)
+
+        with own_priv_key.unlock(settings.PGP_PRIVATE_KEY_PASSWORD):
+            try:
+                is_pgp_signed = True
+                pgp_message = own_priv_key.decrypt(pgp_message)
+                pgp_signature = None
+            except pgpy.errors.PGPDecryptionError as e:
+                logging.warning(f"Could not decrypt PGP message: {e}")
+                tasks.send_email_decryption_failed.delay(str(from_address), message['message-id'])
+                return HttpResponse(status=204)
+
+        unencrypted_msg = parser.parsebytes(pgp_message.message)
+        if unencrypted_msg["Content-Type"].params.get("protected-headers") == "v1":
+            for k, v in message.items():
+                if k not in unencrypted_msg:
+                    unencrypted_msg[k] = v
+        else:
+            for k, v in message.items():
+                if k in unencrypted_msg:
+                    del unencrypted_msg[k]
+                unencrypted_msg[k] = v
+
+        message = unencrypted_msg
+
+    if message.get_content_type() == "multipart/signed":
+        ct_params = message['Content-Type'].params
+        if ct_params.get("protocol") != "application/pgp-signature":
+            logging.warning("Not a PGP-signed message")
+        else:
+            is_pgp_signed = True
+            signed_parts = split_multipart(message.get_payload(), ct_params['boundary'])
+
+            if len(signed_parts) != 2:
+                logging.warning("Not a PGP-signed message")
+                is_pgp_verified = False
+            else:
+                pgp_message = signed_parts[0]
+                signed_part = parser.parsebytes(pgp_message.encode())
+
+                signature_part = parser.parsebytes(signed_parts[1].encode())
+                if signature_part.get_content_type() != "application/pgp-signature":
+                    is_pgp_signed = False
+                else:
+                    pgp_signature = signature_part.get_content()
+                    try:
+                        pgp_signature = pgpy.PGPSignature.from_blob(pgp_signature)
+                    except (ValueError, pgpy.errors.PGPError):
+                        is_pgp_verified = False
+                    else:
+                        if signed_part["Content-Type"].params.get("protected-headers") == "v1":
+                            for k, v in message.items():
+                                if k not in signed_part:
+                                    signed_part[k] = v
+                        else:
+                            for k, v in message.items():
+                                if k in signed_part:
+                                    del signed_part[k]
+                                signed_part[k] = v
+
+                        message = signed_part
+
+    found_new_pgp_keys = []
+    for part in message.walk():
+        if part.get_content_type() == "application/pgp-keys":
+            try:
+                pubkey, _ = pgpy.PGPKey.from_blob(part.get_content())
+                found_new_pgp_keys.append(pubkey)
+            except (ValueError, pgpy.errors.PGPError):
+                pass
+
+    if customer.pgp_keys.count() == 0:
+        customer_pgp_keys = found_new_pgp_keys
+    else:
+        customer_pgp_keys = []
+        for k in models.CustomerPGPKey.objects.filter(customer=customer):
+            customer_pgp_keys.append(k.as_key())
+
+    if pgp_message:
+        for k in customer_pgp_keys:
+            if k.verify(pgp_message, pgp_signature):
+                is_pgp_verified = True
+                customer_pgp_key = k.fingerprint
+                break
+
+    if is_pgp_verified:
+        if customer.pgp_keys.count() == 0:
+            for i, key in enumerate(found_new_pgp_keys):
+                models.CustomerPGPKey.objects.update_or_create(
+                    customer=customer,
+                    fingerprint=key.fingerprint,
+                    defaults={
+                        "pgp_key": str(key),
+                        "primary": i == 0
+                    }
+                )
+
+    html_body = message.get_body(('html',))
+    if not html_body:
+        plain_body = message.get_body(('plain',))
+        if not plain_body:
+            logging.warning(f"No usable body, throwing away")
+            return HttpResponse(status=204)
+        else:
+            plain_body = plain_body.get_content()
+            markdown = markdown2.Markdown()
+            html_body = markdown.convert(plain_body)
+    else:
+        html_body = html_body.get_content()
+
+    soup = bs4.BeautifulSoup(html_body, 'html.parser')
 
     message_date = message['date']
     message_date = (
@@ -115,21 +291,6 @@ def postal_webhook(request):
             if content_id.startswith("<") and content_id.endswith(">"):
                 content_id = content_id[1:-1]
                 attachment_cid_map[content_id] = file_url
-
-    html_body = message.get_body(('html',))
-    if not html_body:
-        plain_body = message.get_body(('plain',))
-        if not plain_body:
-            logging.warning(f"No usable body, throwing away")
-            return HttpResponse(status=200)
-        else:
-            plain_body = plain_body.get_content()
-            markdown = markdown2.Markdown()
-            html_body = markdown.convert(plain_body)
-    else:
-        html_body = html_body.get_content()
-
-    soup = bs4.BeautifulSoup(html_body, 'html.parser')
 
     def replace_url(tag: str, attr: str):
         for img_tag in soup.find_all(tag):
@@ -168,19 +329,21 @@ def postal_webhook(request):
         ).first()
 
     if not ticket:
-        from_address = message['from'].addresses[0]
         subject = message['subject'] if message['subject'] else "No subject"
-        customer = models.Customer.get_by_email(from_address.addr_spec, from_address.display_name)
         if customer.emails_blocked:
             tasks.send_email_blocked.delay(customer.id, message['message-id'])
             return HttpResponse(status=204)
 
         new_message = tasks.open_ticket(
             customer, subject, html_body, source=models.Ticket.SOURCE_EMAIL, priority=models.Ticket.PRIORITY_NORMAL,
-            verified=False, email_id=message['message-id'], date=message_date
+            verified=False, email_id=message['message-id'], date=message_date,
+            is_pgp_signed=is_pgp_signed, is_pgp_verified=is_pgp_verified, customer_pgp_key=customer_pgp_key
         )
     else:
-        new_message = tasks.post_message(ticket, html_body, email_id=message['message-id'], date=message_date)
+        new_message = tasks.post_message(
+            ticket, html_body, email_id=message['message-id'], date=message_date,
+            is_pgp_signed=is_pgp_signed, is_pgp_verified=is_pgp_verified, customer_pgp_key=customer_pgp_key
+        )
 
     for attachment in attachments:
         message_attachment = models.TicketMessageAttachment(

@@ -239,6 +239,9 @@ STRIPE_ENDPOINT_SECRET = os.getenv("STRIPE_ENDPOINT_SECRET")
 
 PUSHOVER_APP_TOKEN = os.getenv("PUSHOVER_APP_TOKEN")
 
+PGP_PRIVATE_KEY_FILE = os.getenv("PGP_PRIVATE_KEY_FILE")
+PGP_PRIVATE_KEY_PASSWORD = os.getenv("PGP_PRIVATE_KEY_PASSWORD")
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

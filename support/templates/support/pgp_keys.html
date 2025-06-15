@@ -1,0 +1,85 @@
+{% extends 'support/base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+    <section class="stripe">
+        <div class="container my-5">
+            <div class="bg-light p-3 rounded my-4">
+                <h1 class="display-4">My PGP keys</h1>
+            </div>
+        </div>
+    </section>
+    <div class="container">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                <tr>
+                    <th>Fingerprint</th>
+                    <th>Primary</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                {% if keys %}
+                    {% for key in keys %}
+                        <tr>
+                            <td>{{ key.fingerprint }}</td>
+                            <td>
+                                {% if key.primary %}
+                                    <span class="badge badge-pill bg-success">Yes</span>
+                                {% else %}
+                                    <span class="badge badge-pill bg-danger">No</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form action="{% url 'make_pgp_key_primary' key.id %}" method="post">
+                                    {% csrf_token %}
+                                    <div class="btn-group">
+                                        <a class="btn btn-primary btn-sm" data-toggle="collapse"
+                                           href=".collapse-{{ forloop.counter0 }}"
+                                           aria-expanded="true">
+                                            🔍 Show key
+                                        </a>
+                                        {% if not key.primary %}
+                                            <button class="btn btn-success btn-sm" type="submit"
+                                                    name="make_pgp_key_primary" value="true">
+                                                Make primary
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr class="collapse-{{ forloop.counter0 }} collapse" style="">
+                            <td colspan="5">
+                                <div class="collapse-{{ forloop.counter0 }} collapse" style="">
+                                    {% with pgp_key=key.as_key %}
+                                        <p>
+                                            <b>Created:</b> {{ pgp_key.created }}<br/>
+                                            <b>Expiry:</b> {{ pgp_key.expires_at }}<br/>
+                                        </p>
+                                        <ul>
+                                            {% for uid in pgp_key.userids %}
+                                                <li>{{ uid.name }} {{ uid.email }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% endwith %}
+                                    <p>
+                                        <code>
+                                            {{ key.pgp_key|linebreaksbr }}
+                                        </code>
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4">No PGP keys</td>
+                    </tr>
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+        <a href="{% url 'new_pgp_key' %}" class="btn btn-primary">Add PGP key</a>
+    </div>
+{% endblock %}

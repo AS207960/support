@@ -1,7 +1,9 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.views.decorators.http import require_POST
 from .. import forms, models, tasks
 import requests
 import stripe.identity
+import pgpy
 from django.core.paginator import Paginator
 from django.conf import settings
 from django.db.models import Max
@@ -143,3 +145,51 @@ def do_kyc(request, session_id):
     stripe_verification_session = stripe.identity.VerificationSession.retrieve(verification_session.stripe_session)
 
     return redirect(stripe_verification_session.url)
+
+
+@login_required
+def pgp_keys(request):
+    keys = models.CustomerPGPKey.objects.filter(customer=request.user.customer)
+
+    return render(request, "support/pgp_keys.html", {
+        "keys": keys
+    })
+
+
+@login_required
+def new_pgp_key(request):
+    if request.method == "POST":
+        form = forms.PGPKeyForm(request.POST)
+        if form.is_valid():
+            try:
+                key, _ = pgpy.PGPKey.from_blob(form.cleaned_data['key'])
+            except (ValueError, pgpy.errors.PGPError):
+                form.add_error('key', "No valid PGP key found")
+            else:
+                models.CustomerPGPKey.objects.update_or_create(
+                    customer=request.user.customer,
+                    fingerprint=key.fingerprint,
+                    defaults={
+                        "pgp_key": str(key),
+                        "primary": request.user.customer.pgp_keys.count() == 0,
+                    }
+                )
+                return redirect('pgp_keys')
+    else:
+        form = forms.PGPKeyForm()
+
+    return render(request, "support/add_pgp_key.html", {
+        "form": form
+    })
+
+
+@login_required
+@require_POST
+def make_pgp_key_primary(request, key_id):
+    key = get_object_or_404(models.CustomerPGPKey, id=key_id)
+    if request.POST.get("make_pgp_key_primary") == "true" and key.customer == request.user.customer:
+        models.CustomerPGPKey.objects.all().update(primary=False)
+        key.primary = True
+        key.save()
+
+    return redirect('pgp_keys')

@@ -1,0 +1,8 @@
+{% extends "support_email/email_base.html" %}
+{% block content %}
+    <p>
+        You sent us an encrypted email. Unfortunately, we weren't able to decrypt it,
+        and so won't be able to respond to your email. Please try sending your message again,
+        or using <a href="{{ support_form_url }}">our contact form</a>.
+    </p>
+{% endblock %}

@@ -113,9 +113,33 @@ def send_email_blocked(customer_id, message_id):
     email.send()
 
 
+@shared_task(
+    autoretry_for=(Exception,), retry_backoff=1, retry_backoff_max=60, max_retries=None, default_retry_delay=3
+)
+def send_email_decryption_failed(to_email, message_id):
+    context = {
+        "support_form_url": settings.EXTERNAL_URL_BASE + reverse("new_ticket")
+    }
+    html_content = render_to_string("support_email/ticket_decryption_failed.html", context)
+    txt_content = render_to_string("support_email/ticket_decryption_failed.txt", context)
+
+    email = EmailMultiAlternatives(
+        to=[to_email],
+        headers={
+            "In-Reply-To": message_id,
+            "Auto-Submitted": "auto-replied"
+        },
+        subject="We couldn't decrypt your email",
+        body=txt_content,
+    )
+    email.attach_alternative(html_content, "text/html")
+    email.send()
+
+
 def open_ticket(
         customer: models.Customer, subject: str, html_message: str, source: str, priority: str, verified: bool = False,
-        email_id: str = None, date=None
+        email_id: str = None, date=None,
+        is_pgp_signed: bool = False, is_pgp_verified: bool = False, customer_pgp_key: typing.Optional[str] = None,
 ):
     ticket = models.Ticket(
         customer=customer,
@@ -124,15 +148,18 @@ def open_ticket(
         priority=priority,
         subject=subject
     )
-
     ticket.save()
 
+    customer_pgp_key = models.CustomerPGPKey.objects.filter(customer=customer, fingerprint=customer_pgp_key).first()
     ticket_message = models.TicketMessage(
         ticket=ticket,
         type=models.TicketMessage.TYPE_CUSTOMER,
         message=html_message,
         date=timezone.now() if not date else date,
-        email_message_id=email_id
+        email_message_id=email_id,
+        pgp_signed_message=is_pgp_signed,
+        pgp_signature_verified=is_pgp_verified,
+        pgp_signing_key=customer_pgp_key,
     )
     ticket_message.save()
 
@@ -148,13 +175,20 @@ def open_ticket(
     return ticket_message
 
 
-def post_message(ticket: models.Ticket, message: str, email_id: str = None, date=None):
+def post_message(
+        ticket: models.Ticket, message: str, email_id: str = None, date=None,
+        is_pgp_signed: bool = False, is_pgp_verified: bool = False, customer_pgp_key: typing.Optional[str] = None,
+):
+    customer_pgp_key = models.CustomerPGPKey.objects.filter(customer=ticket.customer, fingerprint=customer_pgp_key).first()
     ticket_message = models.TicketMessage(
         ticket=ticket,
         type=models.TicketMessage.TYPE_CUSTOMER,
         message=message,
         date=timezone.now() if not date else date,
-        email_message_id=email_id
+        email_message_id=email_id,
+        pgp_signed_message=is_pgp_signed,
+        pgp_signature_verified=is_pgp_verified,
+        pgp_signing_key=customer_pgp_key,
     )
     ticket_message.save()
 

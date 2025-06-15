@@ -45,7 +45,7 @@ class PGPEmail(EmailMultiAlternatives):
         base_msg["Content-Type"] = new_ct
 
         base_msg_str = base_msg.as_string()
-        base_text = base_msg_str.replace('\n', '\r\n').strip().encode()
+        base_text = base_msg_str.replace('\n', '\r\n').encode()
 
         if enc_pgp_key:
             new_msg = django.core.mail.message.SafeMIMEMultipart(

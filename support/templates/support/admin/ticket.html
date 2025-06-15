@@ -124,7 +124,7 @@
                         {% endif %}
                         <br/>
                         {% if message.pgp_signing_key %}
-                            <b>Signed with key:</b> {{ message.pgp_signing_key.fingerprint }}
+                            Signed with key: {{ message.pgp_signing_key.fingerprint }}
                         {% else %}
                             Unknown signing key.
                         {% endif %}

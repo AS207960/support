@@ -48,11 +48,11 @@ class PGPEmail(EmailMultiAlternatives):
         base_text = base_msg_str.replace('\n', '\r\n').strip().encode()
 
         if enc_pgp_key:
-            new_msg = email.mime.multipart.MIMEMultipart(
+            new_msg = django.core.mail.message.SafeMIMEMultipart(
                 _subtype="encrypted", protocol="application/pgp-encrypted"
             )
         else:
-            new_msg = email.mime.multipart.MIMEMultipart(
+            new_msg = django.core.mail.message.SafeMIMEMultipart(
                 _subtype="signed", micalg="pgp-sha512", protocol="application/pgp-signature"
             )
 

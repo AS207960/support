@@ -4,4 +4,4 @@ from . import models
 
 @admin.register(models.Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    pass
+    search_fields = ['email']

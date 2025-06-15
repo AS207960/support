@@ -78,16 +78,17 @@ class PGPEmail(EmailMultiAlternatives):
 
             enc_msg = email.message.Message()
             enc_msg['Content-Type'] = 'application/octet-stream'
-            msg = pgpy.PGPMessage.new(base_text)
+            tbs_msg = pgpy.PGPMessage.new(base_text)
             with own_priv_key.unlock(settings.PGP_PRIVATE_KEY_PASSWORD):
-                msg |= own_priv_key.sign(msg)
+                tbs_msg |= own_priv_key.sign(tbs_msg)
             enc_pgp_key = enc_pgp_key.as_key()
-            enc = enc_pgp_key.encrypt(msg)
+            enc = enc_pgp_key.encrypt(tbs_msg)
             enc_msg.set_payload(str(enc))
             new_msg.attach(enc_msg)
         else:
+            tbs_msg = pgpy.PGPMessage.new(base_text, cleartext=True)
             with own_priv_key.unlock(settings.PGP_PRIVATE_KEY_PASSWORD):
-                signature = own_priv_key.sign(base_text)
+                signature = own_priv_key.sign(tbs_msg)
             sig_msg = email.message.Message()
             sig_msg['Content-Type'] = 'application/pgp-signature; name="signature.asc"'
             sig_msg['Content-Description'] = 'OpenPGP digital signature'
@@ -135,7 +136,8 @@ def make_ticket_email(ticket: models.Ticket, message_id=None) -> EmailMultiAlter
 
     email = PGPEmail(
         to=[ticket.customer.email],
-        headers=headers
+        headers=headers,
+        customer=ticket.customer,
     )
     pubkey = own_priv_key.pubkey
     email.attach(f"OpenPGP_{pubkey.fingerprint}.asc", str(pubkey), "application/pgp-keys")
@@ -201,6 +203,7 @@ def send_email_blocked(customer_id, message_id):
         },
         subject="Your email to Glauca",
         body=txt_content,
+        customer=customer,
     )
     email.attach_alternative(html_content, "text/html")
     email.send()

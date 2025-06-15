@@ -270,6 +270,8 @@ def postal_webhook(request):
     attachment_cid_map = {}
 
     for attachment in message.iter_attachments():
+        if attachment.get_content_type() == "application/pgp-keys":
+            continue
         file_name = attachment.get_filename(failobj="Untitled")
         file_ext = mimetypes.guess_extension(attachment.get_content_type())
         content_id = attachment["content-id"]

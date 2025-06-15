@@ -25,7 +25,6 @@ import typing
 from .. import models, tasks, middleware
 
 logger = logging.getLogger(__name__)
-own_priv_key, _ = pgpy.PGPKey.from_file(settings.PGP_PRIVATE_KEY_FILE)
 
 
 def split_multipart(contents: str, boundary: str) -> typing.List[str]:
@@ -152,10 +151,10 @@ def postal_webhook(request):
             tasks.send_email_decryption_failed.delay(str(from_address), message['message-id'])
             return HttpResponse(status=204)
 
-        with own_priv_key.unlock(settings.PGP_PRIVATE_KEY_PASSWORD):
+        with tasks.own_priv_key.unlock(settings.PGP_PRIVATE_KEY_PASSWORD):
             try:
                 is_pgp_signed = True
-                pgp_message = own_priv_key.decrypt(pgp_message)
+                pgp_message = tasks.own_priv_key.decrypt(pgp_message)
                 pgp_signature = None
             except pgpy.errors.PGPDecryptionError as e:
                 logging.warning(f"Could not decrypt PGP message: {e}")

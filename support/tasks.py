@@ -6,11 +6,15 @@ from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.shortcuts import reverse
 from celery import shared_task
+import pgpy
 import requests
 import secrets
 import typing
 import stripe.identity
 import django_keycloak_auth.clients
+
+
+own_priv_key, _ = pgpy.PGPKey.from_file(settings.PGP_PRIVATE_KEY_FILE)
 
 
 def get_feedback_url(description: str, reference: str):
@@ -46,6 +50,8 @@ def make_ticket_email(ticket: models.Ticket, message_id=None) -> EmailMultiAlter
         to=[ticket.customer.email],
         headers=headers
     )
+    pubkey = own_priv_key.pubkey
+    email.attach(f"OpenPGP_{pubkey.fingerprint}.asc", str(pubkey), "application/pgp-keys")
     return email
 
 

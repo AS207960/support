@@ -1,7 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_POST
-
-from as207960_support.settings_dev import recaptcha_conf
 from .. import forms, models, tasks
 import requests
 import stripe.identity

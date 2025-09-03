@@ -1,5 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_POST
+
+from as207960_support.settings_dev import recaptcha_conf
 from .. import forms, models, tasks
 import requests
 import stripe.identity
@@ -32,17 +34,20 @@ def new_ticket(request):
         form.fields['phone_ext'].disabled = True
 
     if request.method == "POST":
-        recaptcha_success = False
-        recaptcha_resp = request.POST.get("g-recaptcha-response")
-        if not settings.RECAPTCHA_SECRET_KEY:
+        if request.user.is_authenticated:
             recaptcha_success = True
         else:
-            if recaptcha_resp:
-                r = requests.post("https://www.google.com/recaptcha/api/siteverify", data={
-                    "secret": settings.RECAPTCHA_SECRET_KEY,
-                    "response": recaptcha_resp
-                }).json()
-                recaptcha_success = r["success"]
+            recaptcha_success = False
+            recaptcha_resp = request.POST.get("g-recaptcha-response")
+            if not settings.RECAPTCHA_SECRET_KEY:
+                recaptcha_success = True
+            else:
+                if recaptcha_resp:
+                    r = requests.post("https://www.google.com/recaptcha/api/siteverify", data={
+                        "secret": settings.RECAPTCHA_SECRET_KEY,
+                        "response": recaptcha_resp
+                    }).json()
+                    recaptcha_success = r["success"]
 
         if recaptcha_success and form.is_valid():
             if request.user.is_authenticated:

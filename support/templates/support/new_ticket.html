@@ -10,10 +10,12 @@
             </div>
         </div>
     </section>
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-    <script>
-        function onFormSubmit(_) {
-            document.getElementById("newTicketForm").submit();
-        }
-    </script>
+    {% if not user.is_authenticated %}
+        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+        <script>
+            function onFormSubmit(_) {
+                document.getElementById("newTicketForm").submit();
+            }
+        </script>
+    {% endif %}
 {% endblock %}

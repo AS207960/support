@@ -10,6 +10,7 @@ from celery import shared_task
 import email.mime.multipart
 import email.message
 import email.generator
+import email.header
 import pgpy
 import requests
 import secrets
@@ -19,7 +20,6 @@ import django_keycloak_auth.clients
 
 
 own_priv_key, _ = pgpy.PGPKey.from_file(settings.PGP_PRIVATE_KEY_FILE)
-
 
 class PGPEmail(EmailMultiAlternatives):
     customer: typing.Optional[models.Customer]
@@ -59,6 +59,13 @@ class PGPEmail(EmailMultiAlternatives):
             if k == "Subject" and enc_pgp_key:
                 new_msg["Subject"] = "..."
                 continue
+
+            if isinstance(v, str):
+                try:
+                    v = str(email.header.make_header(email.header.decode_header(v)))
+                except Exception:
+                    v = " ".join(v.splitlines())
+
             new_msg[k] = v
         for k in base_msg.keys():
             if k not in (

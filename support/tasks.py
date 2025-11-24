@@ -72,7 +72,7 @@ class PGPEmail(EmailMultiAlternatives):
         if enc_pgp_key:
             ci_msg = email.message.Message()
             ci_msg['Content-Type'] = 'application/pgp-encrypted'
-            ci_msg.set_payload("Version: v1")
+            ci_msg.set_payload("Version: 1")
             new_msg.attach(ci_msg)
 
             enc_msg = email.message.Message()

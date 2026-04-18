@@ -388,15 +388,27 @@ def stripe_webhook(request):
     if verification_successful:
         stripe_verification_session = stripe.identity.VerificationSession.retrieve(
             stripe_verification_session['id'],
-            expand=['verified_outputs']
+            expand=[
+                "verified_outputs",
+                "verified_outputs.dob",
+                "verified_outputs.unparsed_place_of_birth",
+            ]
         )
 
         message = "<p>Verification successful</p><p>"
 
-        if stripe_verification_session['verified_outputs'].get("first_name"):
-            message += f"First name: {stripe_verification_session['verified_outputs']['first_name']}<br>"
-        if stripe_verification_session['verified_outputs'].get("last_name"):
-            message += f"Last name: {stripe_verification_session['verified_outputs']['last_name']}<br>"
+        if fn := stripe_verification_session['verified_outputs'].get("first_name"):
+            message += f"First name: {fn}<br>"
+        if ln := stripe_verification_session['verified_outputs'].get("last_name"):
+            message += f"Last name: {ln}<br>"
+        if e := stripe_verification_session['verified_outputs'].get("email"):
+            message += f"Email: {e}<br>"
+        if p := stripe_verification_session['verified_outputs'].get("phone"):
+            message += f"Phone: {p}<br>"
+        if dob := stripe_verification_session['verified_outputs'].get("dob"):
+            message += f"Date of birth: {dob['year']}-{dob['month']}-{dob['day']}<br>"
+        if pob := stripe_verification_session['verified_outputs'].get("unparsed_place_of_birth"):
+            message += f"Place of birth: {pob}<br>"
         if stripe_verification_session['verified_outputs'].get("address"):
             address = []
             if stripe_verification_session['verified_outputs']['address'].get("line1"):

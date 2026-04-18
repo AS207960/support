@@ -444,17 +444,8 @@ def send_kyc_email(verification_session_id):
 
 def request_kyc(ticket: models.Ticket):
     verification_session = stripe.identity.VerificationSession.create(
-        type='document',
-        options={
-            'document': {
-                'require_live_capture': True,
-                'require_matching_selfie': True,
-            },
-        },
-        client_reference_id=ticket.id,
-        metadata={
-            "user_id": ticket.customer.user.username if ticket.customer.user else None,
-        },
+        verification_flow="vf_1TNaWlC8TgZqcfVo5bQkAqnE",
+        client_reference_id=str(ticket.id)
     )
 
     verification_session_obj = models.VerificationSession(

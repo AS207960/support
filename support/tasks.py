@@ -324,7 +324,8 @@ def send_reply_email(message_id):
     html_content = render_to_string("support_email/ticket_message.html", context)
     txt_content = render_to_string("support_email/ticket_message.txt", context)
 
-    email.subject = f'Re: {ticket_message.ticket.subject}'
+    s = ticket_message.ticket.subject.replace("\n", " ")
+    email.subject = f'Re: {s}'
     email.extra_headers["Auto-Submitted"] = "no"
     email.body = txt_content
     email.attach_alternative(html_content, "text/html")
@@ -384,7 +385,8 @@ def send_close_ticket_email(ticket_id):
     txt_content = render_to_string("support_email/ticket_closed.txt", context)
 
     email = make_ticket_email(ticket)
-    email.subject = f'Ticket closed - {ticket.subject}'
+    s = ticket.subject.replace("\n", " ")
+    email.subject = f'Ticket closed - {s}'
     email.body = txt_content
     email.attach_alternative(html_content, "text/html")
     email.send()
@@ -436,7 +438,8 @@ def send_kyc_email(verification_session_id):
     txt_content = render_to_string("support_email/kyc.txt", context)
 
     email = make_ticket_email(verification_session.ticket)
-    email.subject = f'Identity verification requested - {verification_session.ticket.subject}'
+    s = verification_session.ticket.subject.replace("\n", " ")
+    email.subject = f'Identity verification requested - {s}'
     email.body = txt_content
     email.attach_alternative(html_content, "text/html")
     email.send()

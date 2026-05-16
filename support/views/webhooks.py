@@ -269,16 +269,18 @@ def postal_webhook(request):
     attachments = []
     attachment_cid_map = {}
 
-    for attachment in message.iter_attachments():
-        if attachment.get_content_type() == "application/pgp-keys":
+    for part in message.walk():
+        if not part.is_attachment():
             continue
-        file_name = attachment.get_filename(failobj="Untitled")
-        file_ext = mimetypes.guess_extension(attachment.get_content_type())
-        content_id = attachment["content-id"]
+        if part.get_content_type() == "application/pgp-keys":
+            continue
+        file_name = part.get_filename(failobj="Untitled")
+        file_ext = mimetypes.guess_extension(part.get_content_type())
+        content_id = part["content-id"]
         disk_file_name = models.TicketMessageAttachment.file.field.generate_filename(
             None, f"{str(uuid.uuid4().hex)}{file_ext}"
         )
-        content = io.BytesIO(attachment.get_payload(decode=True))
+        content = io.BytesIO(part.get_payload(decode=True))
         final_name = models.TicketMessageAttachment.file.field.storage.save(
             disk_file_name, content, max_length=models.TicketMessageAttachment.file.field.max_length
         )

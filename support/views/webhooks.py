@@ -399,32 +399,32 @@ def stripe_webhook(request):
 
         message = "<p>Verification successful</p><p>"
 
-        if fn := stripe_verification_session['verified_outputs'].get("first_name"):
+        if fn := stripe_verification_session["verified_outputs"]["first_name"]:
             message += f"First name: {fn}<br>"
-        if ln := stripe_verification_session['verified_outputs'].get("last_name"):
+        if ln := stripe_verification_session["verified_outputs"]["last_name"]:
             message += f"Last name: {ln}<br>"
-        if e := stripe_verification_session['verified_outputs'].get("email"):
+        if e := stripe_verification_session["verified_outputs"]["email"]:
             message += f"Email: {e}<br>"
-        if p := stripe_verification_session['verified_outputs'].get("phone"):
+        if p := stripe_verification_session["verified_outputs"]["phone"]:
             message += f"Phone: {p}<br>"
-        if dob := stripe_verification_session['verified_outputs'].get("dob"):
-            message += f"Date of birth: {dob['year']}-{dob['month']}-{dob['day']}<br>"
-        if pob := stripe_verification_session['verified_outputs'].get("unparsed_place_of_birth"):
+        if dob := stripe_verification_session["verified_outputs"]["dob"]:
+            message += f"Date of birth: {dob["year"]}-{dob["month"]}-{dob["day"]}<br>"
+        if pob := stripe_verification_session["verified_outputs"]["unparsed_place_of_birth"]:
             message += f"Place of birth: {pob}<br>"
-        if stripe_verification_session['verified_outputs'].get("address"):
+        if stripe_verification_session["verified_outputs"]["address"]:
             address = []
-            if stripe_verification_session['verified_outputs']['address'].get("line1"):
-                address.append(stripe_verification_session['verified_outputs']['address']['line1'])
-            if stripe_verification_session['verified_outputs']['address'].get("line2"):
-                address.append(stripe_verification_session['verified_outputs']['address']['line2'])
-            if stripe_verification_session['verified_outputs']['address'].get("city"):
-                address.append(stripe_verification_session['verified_outputs']['address']['city'])
-            if stripe_verification_session['verified_outputs']['address'].get("state"):
-                address.append(stripe_verification_session['verified_outputs']['address']['state'])
-            if stripe_verification_session['verified_outputs']['address'].get("postal_code"):
-                address.append(stripe_verification_session['verified_outputs']['address']['postal_code'])
-            if stripe_verification_session['verified_outputs']['address'].get("country"):
-                address.append(stripe_verification_session['verified_outputs']['address']['country'])
+            if stripe_verification_session["verified_outputs"]["address"]["line1"]:
+                address.append(stripe_verification_session["verified_outputs"]["address"]["line1"])
+            if stripe_verification_session["verified_outputs"]["address"]["line2"]:
+                address.append(stripe_verification_session["verified_outputs"]["address"]["line2"])
+            if stripe_verification_session["verified_outputs"]["address"]["city"]:
+                address.append(stripe_verification_session["verified_outputs"]["address"]["city"])
+            if stripe_verification_session["verified_outputs"]["address"]["state"]:
+                address.append(stripe_verification_session["verified_outputs"]["address"]["state"])
+            if stripe_verification_session["verified_outputs"]["address"]["postal_code"]:
+                address.append(stripe_verification_session["verified_outputs"]["address"]["postal_code"])
+            if stripe_verification_session["verified_outputs"]["address"]["country"]:
+                address.append(stripe_verification_session["verified_outputs"]["address"]["country"])
             message += f"Address: {', '.join(address)}<br>"
 
         message += "</p>"

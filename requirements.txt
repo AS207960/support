@@ -1,4 +1,4 @@
-Django==5.0.*
+Django==5.2.*
 git+https://github.com/AS207960/python-utils@da5df1c1b526b678891d19a2dbf77e299e50ede0
 sentry-sdk
 psycopg2-binary
@@ -7,7 +7,7 @@ django-crispy-forms
 crispy-bootstrap5
 django-xff
 djangorestframework
-django-cockroachdb==5.0.*
+django-cockroachdb==5.2.*
 retry
 requests
 django-phonenumber-field[phonenumbers]

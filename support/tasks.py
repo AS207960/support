@@ -66,7 +66,7 @@ class PGPEmail(EmailMultiAlternatives):
                 except Exception:
                     v = " ".join(v.splitlines())
 
-            new_msg[k] = v
+            new_msg[k] = v.replace("\n", " ")
         for k in base_msg.keys():
             if k not in (
                     "Content-Type", "Subject", "To", "From", "Date",
